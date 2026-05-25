@@ -1,0 +1,169 @@
+name: victoriana
+
+networks:
+  default:
+    name: victoriana_default
+
+services:
+  # Always-on ingress. Fronts the otel-collector on :4318. TLS is NOT a stack
+  # concern: it lives entirely in ./traefik/ config (file provider). The default
+  # config is no-TLS; copy ./traefik/examples/* over the defaults for ACME or
+  # bring-your-own-cert. The single :4318 entrypoint is identical in every mode.
+  traefik:
+    image: traefik:${TRAEFIK_VERSION:-v3.6}
+    container_name: victoriana-traefik
+    restart: unless-stopped
+    ports:
+      - "4318:4318"
+    environment:
+      # Consumed by lego only when the ACME example is active; empty otherwise.
+      CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./data/traefik:/letsencrypt
+      - ./certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:${VM_VERSION:-v1.142.0}
+    container_name: victoriametrics
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8428:8428"
+    volumes:
+      - ./data/vm:/storage
+    command:
+      - "-storageDataPath=/storage"
+      - "-httpListenAddr=:8428"
+      - "-retentionPeriod=${VM_RETENTION_PERIOD:-30d}"
+      # Store OTLP metrics under standard Prometheus names (dots->underscores,
+      # _total for counters, unit suffixes) instead of the dotted OTel names.
+      - "-opentelemetry.usePrometheusNaming=true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8428/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  victorialogs:
+    image: victoriametrics/victoria-logs:${VL_VERSION:-v1.50.0}
+    container_name: victorialogs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9428:9428"
+    volumes:
+      - ./data/vl:/storage
+    command:
+      - "-storageDataPath=/storage"
+      - "-httpListenAddr=:9428"
+      - "-retentionPeriod=${VL_RETENTION_PERIOD:-30d}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  victoriatraces:
+    image: victoriametrics/victoria-traces:${VT_VERSION:-v0.8.2}
+    container_name: victoriatraces
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:10428:10428"
+    volumes:
+      - ./data/vt:/storage
+    command:
+      - "-storageDataPath=/storage"
+      - "-httpListenAddr=:10428"
+      - "-retentionPeriod=${VT_RETENTION_PERIOD:-7d}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:10428/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  vmalert:
+    image: victoriametrics/vmalert:${VMALERT_VERSION:-v1.142.0}
+    container_name: vmalert
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8880:8880"
+    volumes:
+      - ./vmalert/rules:/etc/vmalert/rules:ro
+    command:
+      - "-rule=/etc/vmalert/rules/*.yml"
+      - "-rule=/etc/vmalert/rules/*/*.yml"
+      - "-datasource.url=http://victoriametrics:8428"
+      - "-remoteWrite.url=http://victoriametrics:8428"
+      - "-evaluationInterval=30s"
+      - "-httpListenAddr=:8880"
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8880/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-11.4.0}
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_INSTALL_PLUGINS: victoriametrics-logs-datasource
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      victorialogs:
+        condition: service_healthy
+      victoriatraces:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.151.0}
+    container_name: otel-collector
+    restart: unless-stopped
+    # No healthcheck: the otel-collector-contrib image is FROM scratch, so there
+    # is no shell, wget, curl, or nc available to probe the health_check
+    # extension's HTTP endpoint from inside the container. Liveness is observed
+    # externally via Traefik's logs and the collector's self-reported metrics.
+    expose:
+      - "4317"
+      - "4318"
+    environment:
+      OTLP_TOKEN: ${OTLP_TOKEN}
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+      victorialogs:
+        condition: service_healthy
+      victoriatraces:
+        condition: service_healthy
+    # Routing now lives in ./traefik/dynamic/ (file provider), not docker labels.

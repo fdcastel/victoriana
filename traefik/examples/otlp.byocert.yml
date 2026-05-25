@@ -1,0 +1,23 @@
+# Bring-your-own-cert router. Keep the default traefik.yml (no ACME resolver),
+# then:
+#   1. cp examples/otlp.byocert.yml dynamic/otlp.yml
+#   2. drop your cert + key at ./certs/tls.crt and ./certs/tls.key
+#      (already mounted read-only at /certs by docker-compose.yml)
+#   3. docker compose up -d traefik
+http:
+  routers:
+    otlp:
+      entryPoints:
+        - otlp
+      rule: "PathPrefix(`/`)"
+      service: otlp
+      tls: {}
+  services:
+    otlp:
+      loadBalancer:
+        servers:
+          - url: "http://otel-collector:4318"
+tls:
+  certificates:
+    - certFile: /certs/tls.crt
+      keyFile: /certs/tls.key

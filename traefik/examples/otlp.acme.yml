@@ -1,0 +1,16 @@
+# ACME router (pairs with examples/traefik.acme.yml as traefik.yml).
+# TLS via the `le` resolver, scoped to your public hostname.
+http:
+  routers:
+    otlp:
+      entryPoints:
+        - otlp
+      rule: "Host(`v.example.com`)"     # <-- EDIT to your public hostname
+      service: otlp
+      tls:
+        certResolver: le
+  services:
+    otlp:
+      loadBalancer:
+        servers:
+          - url: "http://otel-collector:4318"

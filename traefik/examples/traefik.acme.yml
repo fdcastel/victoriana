@@ -1,0 +1,42 @@
+# ACME (Let's Encrypt) STATIC config. To enable TLS via Let's Encrypt:
+#   1. cp examples/traefik.acme.yml traefik.yml
+#   2. cp examples/otlp.acme.yml    dynamic/otlp.yml   (edit the Host rule)
+#   3. edit the ACME email below + set the DNS-provider token via env
+#      (Cloudflare: CLOUDFLARE_API_TOKEN in .env -> CF_DNS_API_TOKEN)
+#   4. docker compose up -d --force-recreate traefik
+#
+# NOTE: this is STATIC config -- Traefik only hot-reloads ./dynamic/, so a
+# static change needs --force-recreate (a plain `up -d` won't reload it).
+# If the resolver is defined but the token is missing/invalid, Traefik still
+# starts; cert acquisition just fails non-fatally (no TLS served).
+# The cert + account state persist in ./data/traefik/acme.json.
+
+entryPoints:
+  otlp:
+    address: ":4318"
+  traefik:
+    address: ":8080"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  le:
+    acme:
+      email: "you@example.com"          # <-- EDIT (must be a real address; LE rejects example.com)
+      storage: /letsencrypt/acme.json
+      dnsChallenge:
+        provider: cloudflare            # <-- or another Traefik DNS provider
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+ping:
+  entryPoint: traefik
+
+log:
+  level: INFO
+
+accessLog: {}

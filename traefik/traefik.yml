@@ -1,0 +1,30 @@
+# Static Traefik config -- NO-TLS DEFAULT.
+#
+# TLS is opt-in and lives entirely in config (no compose changes, no profiles):
+#   * ACME (Let's Encrypt):  cp examples/traefik.acme.yml traefik.yml
+#                            cp examples/otlp.acme.yml    dynamic/otlp.yml   (edit Host)
+#   * Bring-your-own-cert:   cp examples/otlp.byocert.yml dynamic/otlp.yml   (mount ./certs)
+#
+# The :4318 entrypoint is identical in every mode; only the dynamic router's
+# TLS config and the client's http<->https change.
+
+entryPoints:
+  otlp:
+    address: ":4318"
+  # Internal entrypoint for the container healthcheck (`traefik healthcheck
+  # --ping`); not published to the host.
+  traefik:
+    address: ":8080"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+ping:
+  entryPoint: traefik
+
+log:
+  level: INFO
+
+accessLog: {}

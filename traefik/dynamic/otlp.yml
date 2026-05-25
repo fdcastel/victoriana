@@ -1,0 +1,16 @@
+# No-TLS default router: forward everything on the :4318 entrypoint to the
+# otel-collector over plain HTTP. The collector enforces the bearer token, so
+# this is safe on a trusted LAN. For TLS, replace this file with one of the
+# ../examples/ variants.
+http:
+  routers:
+    otlp:
+      entryPoints:
+        - otlp
+      rule: "PathPrefix(`/`)"
+      service: otlp
+  services:
+    otlp:
+      loadBalancer:
+        servers:
+          - url: "http://otel-collector:4318"

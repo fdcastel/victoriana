@@ -1,0 +1,45 @@
+extensions:
+  bearertokenauth/server:
+    scheme: Bearer
+    token: ${env:OTLP_TOKEN}
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        auth:
+          authenticator: bearertokenauth/server
+      grpc:
+        endpoint: 0.0.0.0:4317
+        auth:
+          authenticator: bearertokenauth/server
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
+exporters:
+  otlp_http/vm:
+    endpoint: http://victoriametrics:8428/opentelemetry
+  otlp_http/vl:
+    endpoint: http://victorialogs:9428/insert/opentelemetry
+  otlp_http/vt:
+    endpoint: http://victoriatraces:10428/insert/opentelemetry
+
+service:
+  extensions: [bearertokenauth/server]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/vm]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/vl]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/vt]

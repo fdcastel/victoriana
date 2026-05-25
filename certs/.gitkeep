@@ -1,0 +1,2 @@
+# Bring-your-own-cert files go here (tls.crt + tls.key), mounted read-only at
+# /certs. Empty by default (no-TLS / ACME modes don't use it).

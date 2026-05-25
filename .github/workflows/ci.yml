@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate compose
+        run: docker compose config -q
+
+      - name: Prepare env + data dir
+        run: |
+          echo "OTLP_TOKEN=ci-test-token" > .env
+          sudo mkdir -p data/grafana && sudo chown -R 472:472 data/grafana
+
+      - name: Bring up stack (no-TLS default)
+        run: docker compose up -d --wait --wait-timeout 180
+
+      - name: Smoke test OTLP through Traefik + ingest into VictoriaMetrics
+        run: |
+          set -euo pipefail
+          NOW_NS=$(date +%s%N)
+
+          # 200 with bearer
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ci-test-token" -H "Content-Type: application/json" \
+            -X POST http://localhost:4318/v1/metrics \
+            -d "{\"resourceMetrics\":[{\"scopeMetrics\":[{\"metrics\":[{\"name\":\"ci_smoke\",\"gauge\":{\"dataPoints\":[{\"asInt\":\"1\",\"timeUnixNano\":\"${NOW_NS}\"}]}}]}]}]}")
+          echo "POST with bearer -> $code"; [ "$code" = "200" ]
+
+          # 401 without bearer
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Content-Type: application/json" \
+            -X POST http://localhost:4318/v1/metrics -d '{}')
+          echo "POST without bearer -> $code"; [ "$code" = "401" ]
+
+          # metric lands in VictoriaMetrics
+          for i in $(seq 1 30); do
+            if curl -s 'http://localhost:8428/api/v1/query?query=ci_smoke' | grep -q '"ci_smoke"'; then
+              echo "metric present in VictoriaMetrics"; exit 0
+            fi
+            sleep 2
+          done
+          echo "metric NOT found in VictoriaMetrics:"
+          curl -s 'http://localhost:8428/api/v1/query?query=ci_smoke'
+          exit 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

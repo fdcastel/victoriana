@@ -1,0 +1,10 @@
+# Secrets + local overrides
+.env
+
+# Runtime data (bind mounts: VM/VL/VT storage, Grafana state, ACME acme.json)
+/data/
+
+# Bring-your-own-cert material
+/certs/*.crt
+/certs/*.key
+/certs/*.pem
