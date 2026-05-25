@@ -112,6 +112,11 @@ ssh -L 3000:localhost:3000 \
 - `http://localhost:10428/select/vmui/` - VictoriaTraces
 - `http://localhost:8880/vmalert/` - vmalert
 
+To expose Grafana directly on a network instead of tunnelling, set
+`GRAFANA_HTTP_BIND` in `.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one
+interface). Only do this on a trusted network - Grafana ships anonymous-Admin
+(see [Security model](#security-model)).
+
 ## Configuration
 
 Image versions and retention are env-driven with sane defaults baked into
