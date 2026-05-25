@@ -18,7 +18,7 @@ app       --OTLP/HTTP + bearer-->  Traefik :4318  -->  otel-collector  -->  vict
 
 operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three datasources
                      (off by default;       (pre-provisioned; dashboards from
-                      see GRAFANA_HTTP_BIND)  ./grafana/dashboards/)
+                      see TRAEFIK_WEB_BIND)  ./grafana/dashboards/)
 
                                                           vmalert --> victoriametrics
                                                           (rules from ./vmalert/rules/)
@@ -28,7 +28,7 @@ operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three datasources
 nothing is published directly:
 - `:4318` (`otlp` entrypoint) -> the OTLP collector. Bearer-authenticated.
 - `:80` (`web` entrypoint) -> Grafana. **Off the network by default** (bound to
-  loopback; reach via SSH tunnel) - set `GRAFANA_HTTP_BIND` to expose it.
+  loopback; reach via SSH tunnel) - set `TRAEFIK_WEB_BIND` to expose it.
 
 Whether an endpoint is plain HTTP, Let's Encrypt TLS, or your own certificate is
 **purely Traefik configuration** (`./traefik/`) - the compose file, the ports,
@@ -117,7 +117,7 @@ ssh -L 8080:localhost:80 \
 - `http://localhost:10428/select/vmui/` - VictoriaTraces
 - `http://localhost:8880/vmalert/` - vmalert
 
-To expose Grafana on a network instead of tunnelling, set `GRAFANA_HTTP_BIND` in
+To expose Grafana on a network instead of tunnelling, set `TRAEFIK_WEB_BIND` in
 `.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one interface) - this binds
 Traefik's `web` entrypoint, not Grafana itself. Only do this on a trusted
 network: Grafana ships anonymous-Admin (see [Security model](#security-model)).
@@ -147,12 +147,12 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
   directly; everything reachable goes through it.
 - By default the only network-exposed port is `:4318` (OTLP), protected by the
   **bearer token**. Grafana's `web` entrypoint and the other UIs bind to
-  loopback until you set `GRAFANA_HTTP_BIND`.
+  loopback until you set `TRAEFIK_WEB_BIND`.
 - In **no-TLS** mode the bearer token travels unencrypted - fine on a trusted
   network or behind another TLS proxy; otherwise enable a TLS mode above.
 - **Grafana ships with anonymous Admin and no login** (`GF_AUTH_ANONYMOUS_*`),
   convenient behind the loopback/SSH-tunnel boundary. Before exposing it
-  (`GRAFANA_HTTP_BIND`), consider removing those env vars and provisioning real
+  (`TRAEFIK_WEB_BIND`), consider removing those env vars and provisioning real
   users - otherwise anyone who reaches the port is Admin.
 
 ## Operations

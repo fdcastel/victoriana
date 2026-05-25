@@ -52,7 +52,7 @@ jobs:
       - name: Grafana reachable through Traefik (web entrypoint)
         run: |
           set -euo pipefail
-          # GRAFANA_HTTP_BIND defaults to 127.0.0.1:80 -> Traefik web -> grafana.
+          # TRAEFIK_WEB_BIND defaults to 127.0.0.1:80 -> Traefik web -> grafana.
           code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:80/api/health)
           echo "Grafana via Traefik :80 -> $code"; [ "$code" = "200" ]
 

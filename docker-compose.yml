@@ -16,9 +16,9 @@ services:
     ports:
       - "4318:4318"                                  # OTLP ingress
       # Grafana UI, via Traefik's `web` entrypoint. Default loopback (reach via
-      # SSH tunnel); set GRAFANA_HTTP_BIND to expose on a network, e.g.
+      # SSH tunnel); set TRAEFIK_WEB_BIND to expose on a network, e.g.
       # "0.0.0.0:80" (LAN) or "10.0.0.5:80" (one interface).
-      - "${GRAFANA_HTTP_BIND:-127.0.0.1:80}:80"
+      - "${TRAEFIK_WEB_BIND:-127.0.0.1:80}:80"
     environment:
       # Consumed by lego only when the ACME example is active; empty otherwise.
       CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
@@ -125,7 +125,7 @@ services:
     restart: unless-stopped
     # Internal-only: Grafana is reached through Traefik's `web` entrypoint
     # (traefik/dynamic/grafana.yml), never published directly. Control its
-    # exposure with GRAFANA_HTTP_BIND on the traefik service above. Grafana ships
+    # exposure with TRAEFIK_WEB_BIND on the traefik service above. Grafana ships
     # anonymous-Admin (see README "Security model") -- only expose on a trusted
     # network.
     expose:

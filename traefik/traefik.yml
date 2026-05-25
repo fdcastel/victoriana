@@ -12,7 +12,7 @@ entryPoints:
   otlp:
     address: ":4318"
   # HTTP entrypoint for the Grafana UI (dynamic/grafana.yml). Published per
-  # GRAFANA_HTTP_BIND in docker-compose.yml (default loopback; set 0.0.0.0:80
+  # TRAEFIK_WEB_BIND in docker-compose.yml (default loopback; set 0.0.0.0:80
   # to expose on a network). Grafana is never published directly -- it is only
   # reachable through Traefik.
   web:

@@ -1,7 +1,7 @@
 # Grafana UI router: forward the `web` entrypoint to Grafana over the internal
 # docker network. Grafana is never published directly; it is only reachable
 # through Traefik. Whether the `web` entrypoint is on the LAN or loopback is set
-# by GRAFANA_HTTP_BIND in docker-compose.yml (default loopback -> SSH tunnel).
+# by TRAEFIK_WEB_BIND in docker-compose.yml (default loopback -> SSH tunnel).
 http:
   routers:
     grafana:
