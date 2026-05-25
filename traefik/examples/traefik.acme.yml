@@ -14,6 +14,8 @@
 entryPoints:
   otlp:
     address: ":4318"
+  web:                       # Grafana UI (dynamic/grafana.yml); HTTP unless you add TLS
+    address: ":80"
   traefik:
     address: ":8080"
 

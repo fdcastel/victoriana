@@ -14,7 +14,11 @@ services:
     container_name: victoriana-traefik
     restart: unless-stopped
     ports:
-      - "4318:4318"
+      - "4318:4318"                                  # OTLP ingress
+      # Grafana UI, via Traefik's `web` entrypoint. Default loopback (reach via
+      # SSH tunnel); set GRAFANA_HTTP_BIND to expose on a network, e.g.
+      # "0.0.0.0:80" (LAN) or "10.0.0.5:80" (one interface).
+      - "${GRAFANA_HTTP_BIND:-127.0.0.1:80}:80"
     environment:
       # Consumed by lego only when the ACME example is active; empty otherwise.
       CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
@@ -119,12 +123,13 @@ services:
     image: grafana/grafana:${GRAFANA_VERSION:-11.4.0}
     container_name: grafana
     restart: unless-stopped
-    # Host bind for the Grafana UI. Default = loopback (reach via SSH tunnel).
-    # Set GRAFANA_HTTP_BIND in .env to expose it on a network, e.g. "0.0.0.0:80"
-    # (LAN) or "10.0.0.5:80" (one interface). Note: Grafana ships anonymous-Admin
-    # (see README "Security model") -- only expose it on a trusted network.
-    ports:
-      - "${GRAFANA_HTTP_BIND:-127.0.0.1:3000}:3000"
+    # Internal-only: Grafana is reached through Traefik's `web` entrypoint
+    # (traefik/dynamic/grafana.yml), never published directly. Control its
+    # exposure with GRAFANA_HTTP_BIND on the traefik service above. Grafana ships
+    # anonymous-Admin (see README "Security model") -- only expose on a trusted
+    # network.
+    expose:
+      - "3000"
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin

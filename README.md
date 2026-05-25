@@ -12,26 +12,29 @@ own dashboards and alert rules into `grafana/dashboards/` and `vmalert/rules/`.
 ## Architecture
 
 ```
-app  --OTLP/HTTP + bearer-->  Traefik :4318  -->  otel-collector  -->  victoriametrics (metrics)
-                              (TLS optional,         (bearer-auth,        victorialogs    (logs)
-                               see below)             batches, fans out)  victoriatraces  (traces)
+app       --OTLP/HTTP + bearer-->  Traefik :4318  -->  otel-collector  -->  victoriametrics (metrics)
+                                   (TLS optional)        (bearer-auth,        victorialogs    (logs)
+                                                          batches, fans out)  victoriatraces  (traces)
 
-                                                                         vmalert  --> victoriametrics
-                                                                         (rules from ./vmalert/rules/)
+operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three datasources
+                     (off by default;       (pre-provisioned; dashboards from
+                      see GRAFANA_HTTP_BIND)  ./grafana/dashboards/)
 
-                                                                         grafana  --> all three
-                                                                         (datasources pre-provisioned;
-                                                                          dashboards from ./grafana/dashboards/)
+                                                          vmalert --> victoriametrics
+                                                          (rules from ./vmalert/rules/)
 ```
 
-**Traefik always fronts the collector on `:4318`.** Whether that endpoint is
-plain HTTP, Let's Encrypt TLS, or your own certificate is **purely Traefik
-configuration** (`./traefik/`) - the compose file, the port, and everything
-downstream are identical in every mode. The collector is never published
-directly; the bearer token is enforced there regardless of TLS.
+**Traefik is the only edge.** Every network-reachable service sits behind it;
+nothing is published directly:
+- `:4318` (`otlp` entrypoint) -> the OTLP collector. Bearer-authenticated.
+- `:80` (`web` entrypoint) -> Grafana. **Off the network by default** (bound to
+  loopback; reach via SSH tunnel) - set `GRAFANA_HTTP_BIND` to expose it.
 
-The Victoria services, vmalert, and Grafana bind to the host's loopback only
-(reach them via SSH tunnel). The single externally-reachable port is `:4318`.
+Whether an endpoint is plain HTTP, Let's Encrypt TLS, or your own certificate is
+**purely Traefik configuration** (`./traefik/`) - the compose file, the ports,
+and everything downstream are identical in every mode. VictoriaMetrics/Logs/
+Traces and vmalert stay on loopback (SSH tunnel); the collector and Grafana are
+never published directly.
 
 ## Quick start (no-TLS)
 
@@ -98,24 +101,26 @@ two settings cover all three.
 
 ## Web UIs
 
-Grafana and the Victoria services bind to `127.0.0.1`. Reach them over SSH:
+By default everything but the OTLP port is on `127.0.0.1`. **Grafana** is served
+by Traefik's `web` entrypoint, bound to loopback by default; the Victoria
+services and vmalert bind to loopback directly. Reach them over SSH:
 
 ```sh
-ssh -L 3000:localhost:3000 \
+ssh -L 8080:localhost:80 \
     -L 8428:localhost:8428 -L 9428:localhost:9428 -L 10428:localhost:10428 \
     -L 8880:localhost:8880 user@<host>
 ```
 
-- `http://localhost:3000/` - Grafana (the three datasources come pre-provisioned)
+- `http://localhost:8080/` - Grafana via Traefik (the three datasources come pre-provisioned)
 - `http://localhost:8428/vmui/` - VictoriaMetrics
 - `http://localhost:9428/select/vmui/` - VictoriaLogs
 - `http://localhost:10428/select/vmui/` - VictoriaTraces
 - `http://localhost:8880/vmalert/` - vmalert
 
-To expose Grafana directly on a network instead of tunnelling, set
-`GRAFANA_HTTP_BIND` in `.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one
-interface). Only do this on a trusted network - Grafana ships anonymous-Admin
-(see [Security model](#security-model)).
+To expose Grafana on a network instead of tunnelling, set `GRAFANA_HTTP_BIND` in
+`.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one interface) - this binds
+Traefik's `web` entrypoint, not Grafana itself. Only do this on a trusted
+network: Grafana ships anonymous-Admin (see [Security model](#security-model)).
 
 ## Configuration
 
@@ -138,13 +143,17 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 
 ## Security model
 
-- The single public surface is `:4318`, protected by the **bearer token**.
-- In **no-TLS** mode that token travels unencrypted - fine on a trusted network
-  or behind another TLS proxy; otherwise enable a TLS mode above.
+- **Traefik is the only edge** - the collector and Grafana are never published
+  directly; everything reachable goes through it.
+- By default the only network-exposed port is `:4318` (OTLP), protected by the
+  **bearer token**. Grafana's `web` entrypoint and the other UIs bind to
+  loopback until you set `GRAFANA_HTTP_BIND`.
+- In **no-TLS** mode the bearer token travels unencrypted - fine on a trusted
+  network or behind another TLS proxy; otherwise enable a TLS mode above.
 - **Grafana ships with anonymous Admin and no login** (`GF_AUTH_ANONYMOUS_*`),
-  convenient behind the loopback/SSH-tunnel boundary. If you expose Grafana,
-  remove those env vars and provision real users.
-- Everything except `:4318` binds to `127.0.0.1`.
+  convenient behind the loopback/SSH-tunnel boundary. Before exposing it
+  (`GRAFANA_HTTP_BIND`), consider removing those env vars and provisioning real
+  users - otherwise anyone who reaches the port is Admin.
 
 ## Operations
 
