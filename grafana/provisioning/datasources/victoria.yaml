@@ -20,19 +20,22 @@ datasources:
     access: proxy
     url: http://victorialogs:9428
 
-  - name: VictoriaTraces
+  # VictoriaTraces exposes two query surfaces on the same server: the
+  # Jaeger-compatible search API (this entry) and the LogsQL endpoint
+  # (the next one). They're paired — provisioning both lets dashboards
+  # pick the right tool for the job:
+  #   * Jaeger surface: trace search, traceID lookups, dependency graph.
+  #   * LogsQL surface: spans-as-rows, LogsQL pipes (`stats by`, `quantile`,
+  #     `sort by`, projecting span attrs into table columns) that the
+  #     Jaeger search API can't express.
+  # The suffix in parentheses names the protocol the datasource speaks.
+  - name: VictoriaTraces (Jaeger)
     uid: victoriatraces
     type: jaeger
     access: proxy
     url: http://victoriatraces:10428/select/jaeger
 
-  # Second datasource pointing at the SAME VictoriaTraces server, using its
-  # LogsQL endpoint (/select/logsql/query) instead of the Jaeger-compat
-  # search API. Spans return as rows-with-fields, so dashboards can pivot
-  # span attributes into table columns and run LogsQL aggregates
-  # (`stats by ...`, `quantile`, `sort by`) that the Jaeger search API
-  # doesn't expose. Same disk, same data, different query surface.
-  - name: VictoriaTraces-Logs
+  - name: VictoriaTraces (LogsQL)
     uid: victoriatraces_logs
     type: victoriametrics-logs-datasource
     access: proxy
