@@ -25,3 +25,15 @@ datasources:
     type: jaeger
     access: proxy
     url: http://victoriatraces:10428/select/jaeger
+
+  # Second datasource pointing at the SAME VictoriaTraces server, using its
+  # LogsQL endpoint (/select/logsql/query) instead of the Jaeger-compat
+  # search API. Spans return as rows-with-fields, so dashboards can pivot
+  # span attributes into table columns and run LogsQL aggregates
+  # (`stats by ...`, `quantile`, `sort by`) that the Jaeger search API
+  # doesn't expose. Same disk, same data, different query surface.
+  - name: VictoriaTraces-Logs
+    uid: victoriatraces_logs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: http://victoriatraces:10428
