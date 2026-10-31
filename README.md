@@ -16,7 +16,7 @@ app       --OTLP/HTTP + bearer-->  Traefik :4318  -->  otel-collector  -->  vict
                                    (TLS optional)        (bearer-auth,        victorialogs    (logs)
                                                           batches, fans out)  victoriatraces  (traces)
 
-operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three datasources
+operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three stores
                      (off by default;       (pre-provisioned; dashboards from
                       see TRAEFIK_WEB_BIND)  ./grafana/dashboards/)
 
@@ -55,8 +55,9 @@ TOKEN="$(grep ^OTLP_TOKEN= .env | cut -d= -f2-)"
 curl -s -o /dev/null -w '%{http_code}\n' \
      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      -X POST "http://localhost:4318/v1/metrics" \
-     -d '{"resourceMetrics":[{"scopeMetrics":[{"metrics":[{"name":"smoke","gauge":{"dataPoints":[{"asInt":"1","timeUnixNano":"1"}]}}]}]}]}'
-# Expect 200 (with token) and 401 (without).
+     -d '{"resourceMetrics":[{"scopeMetrics":[{"metrics":[{"name":"smoke","gauge":{"dataPoints":[{"asInt":"1","timeUnixNano":"'"$(date +%s%N)"'"}]}}]}]}]}'
+# Expect 200 (with token) and 401 (without). Then, within a few seconds:
+curl -s 'http://localhost:8428/api/v1/query?query=smoke'
 ```
 
 ## TLS modes (Traefik config, no compose changes)
@@ -89,9 +90,10 @@ two settings cover all three.
 ## Dashboards & alert rules (drop-in)
 
 - **Dashboards:** drop Grafana dashboard JSON into `grafana/dashboards/`
-  (subdirectories become Grafana folders; scanned every 60s, no restart). The
-  three Victoria datasources are pre-provisioned with stable uids
-  (`victoriametrics`, `victorialogs`, `victoriatraces`). See
+  (subdirectories become Grafana folders; scanned every 60s, no restart). Four
+  datasources are pre-provisioned with stable uids: `victoriametrics`,
+  `victorialogs`, and VictoriaTraces twice - `victoriatraces` (Jaeger API) and
+  `victoriatraces_logs` (LogsQL over spans). See
   [grafana/dashboards/README.md](grafana/dashboards/README.md).
 - **Rules:** drop alert/recording rule YAML into `vmalert/rules/` (or a
   per-consumer subdirectory), then `docker compose restart vmalert`. See
@@ -111,7 +113,7 @@ ssh -L 8080:localhost:80 \
     -L 8880:localhost:8880 user@<host>
 ```
 
-- `http://localhost:8080/` - Grafana via Traefik (the three datasources come pre-provisioned)
+- `http://localhost:8080/` - Grafana via Traefik (the four datasources come pre-provisioned)
 - `http://localhost:8428/vmui/` - VictoriaMetrics
 - `http://localhost:9428/select/vmui/` - VictoriaLogs
 - `http://localhost:10428/select/vmui/` - VictoriaTraces

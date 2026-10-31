@@ -35,3 +35,18 @@ dashboards or changes.
 `allowUiUpdates: false` is set, so changes made through the Grafana UI to a
 provisioned dashboard are saved as a copy and don't affect the JSON on disk.
 This keeps the on-disk dashboards as source of truth.
+
+## Datasources
+
+Reference datasources by these stable uids (provisioned in
+[../provisioning/datasources/victoria.yaml](../provisioning/datasources/victoria.yaml)):
+
+| uid | Type | Use for |
+|-----|------|---------|
+| `victoriametrics` | Prometheus (MetricsQL) | metrics; Prometheus naming (`foo_bar`, `_total`) |
+| `victorialogs` | VictoriaLogs (LogsQL) | logs |
+| `victoriatraces` | Jaeger | trace search, trace-ID lookup, the trace waterfall, service dependency graph |
+| `victoriatraces_logs` | VictoriaLogs (LogsQL) | spans as rows: `stats by`, `quantile`, `sort by`, span attributes as table columns - anything the Jaeger search API can't express |
+
+Both VictoriaTraces entries query the same server; pick the surface by what the
+panel needs, not by the data.
