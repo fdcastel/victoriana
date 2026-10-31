@@ -91,7 +91,7 @@ services:
       start_period: 15s
 
   victorialogs:
-    image: victoriametrics/victoria-logs:${VL_VERSION:-v1.50.0}
+    image: victoriametrics/victoria-logs:${VL_VERSION:-v1.53.0}
     restart: unless-stopped
     ports:
       - "127.0.0.1:9428:9428"
@@ -105,12 +105,9 @@ services:
       # this usage, and stop accepting writes below the free-space floor.
       - "-retention.maxDiskUsagePercent=${VL_MAX_DISK_USAGE_PERCENT:-80}"
       - "-storage.minFreeDiskSpaceBytes=${VL_MIN_FREE_DISK:-1GiB}"
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9428/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+    # No Docker healthcheck: the image is distroless since v1.52 (no shell or
+    # wget). Health is watched by self-monitoring instead: `up` in
+    # victoriametrics and the upstream ServiceDown alert.
 
   victoriatraces:
     image: victoriametrics/victoria-traces:${VT_VERSION:-v0.8.2}
@@ -205,7 +202,7 @@ services:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_healthy
+        condition: service_started
       victoriatraces:
         condition: service_healthy
     healthcheck:
@@ -232,7 +229,7 @@ services:
       victoriametrics:
         condition: service_healthy
       victorialogs:
-        condition: service_healthy
+        condition: service_started
       victoriatraces:
         condition: service_healthy
 
