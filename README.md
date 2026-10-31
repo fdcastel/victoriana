@@ -146,6 +146,13 @@ Image versions and retention are env-driven with sane defaults baked into
 | `otel/opentelemetry-collector-contrib` | `0.151.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
+**Disk guards.** Retention is time-based, plus two guards on the filesystem
+holding `./data` (shared by all three stores): VictoriaLogs and VictoriaTraces
+drop their oldest days once it is 80% full (`VL_/VT_MAX_DISK_USAGE_PERCENT`),
+and every store stops accepting writes below 1 GiB free (`VM_/VL_/VT_MIN_FREE_DISK`).
+Metrics are never deleted early, so on a disk filled by something else
+VictoriaMetrics stops ingesting rather than losing history.
+
 VictoriaMetrics runs with `-opentelemetry.usePrometheusNaming=true` so OTLP
 metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 `_total` on counters). Dashboards/PromQL should assume Prometheus naming.
