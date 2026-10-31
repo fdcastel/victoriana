@@ -27,8 +27,17 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Collector exporter {{ $labels.exporter }} is failing to send"
-          description: "Data the collector accepted is not reaching its store. Check that store's health and `docker compose logs otel-collector`."
+          summary: "Collector exporter {{ $labels.exporter }} is dropping data"
+          description: "The store rejected data permanently (e.g. 400), so the collector dropped it; transient failures are retried and show as CollectorExportBacklog instead. See `docker compose logs otel-collector`."
+
+      - alert: CollectorExportBacklog
+        expr: max by (exporter) (otelcol_exporter_queue_size / otelcol_exporter_queue_capacity) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Collector export queue {{ $labels.exporter }} is {{ $value | humanizePercentage }} full"
+          description: "Its store is down or slow; accepted data waits in the on-disk queue and is retried until delivered. At 100% the collector refuses new data (CollectorRefusingData)."
 
       - alert: CollectorRefusingData
         expr: sum(rate({__name__=~"otelcol_receiver_refused_.+_total"}[5m])) > 0

@@ -177,6 +177,7 @@ exposure, alert delivery. Override in `.env`; `.env.example` lists every knob.
 | `victoriametrics/vmalert` | `v1.155.0` | | | |
 | `grafana/grafana` | `13.3.0` | | | |
 | `otel/opentelemetry-collector-contrib` | `0.164.0` | | | |
+| `busybox` (one-shot `otel-collector-init`) | `1.38.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
 **Disk guards.** Retention is time-based, plus two guards on the filesystem
@@ -185,6 +186,13 @@ drop their oldest days once it is 80% full (`VL_/VT_MAX_DISK_USAGE_PERCENT`),
 and every store stops accepting writes below 1 GiB free (`VM_/VL_/VT_MIN_FREE_DISK`).
 Metrics are never deleted early, so on a disk filled by something else
 VictoriaMetrics stops ingesting rather than losing history.
+
+**Store outages.** The collector answers 200 once a batch is in its export
+queue, and that queue is on disk (the `otelcol-queue` volume): while a store is
+down or restarting, its data waits there, survives a collector restart, and is
+delivered when the store is back. Retries never give up; when a queue is full
+(1000 batches per store) the collector refuses new data and producers retry on
+their side.
 
 VictoriaMetrics runs with `-opentelemetry.usePrometheusNaming=true` so OTLP
 metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
@@ -227,7 +235,8 @@ How each kind of change takes effect:
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
-  `docker compose down -v` discards it.
+  `docker compose down -v` discards it, and also the collector's
+  `otelcol-queue` volume, with any data not yet delivered to a store.
 - **Back up:** the irreplaceable state is `./data/vm`, `./data/vl`, `./data/vt`,
   `./data/traefik/acme.json` and your `.env` (secrets: store it securely);
   Grafana and all config are re-provisioned from the repo. Copying a running

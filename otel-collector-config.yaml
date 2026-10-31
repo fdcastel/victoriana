@@ -10,6 +10,12 @@ extensions:
   # the image is FROM scratch, so Docker itself can't probe it.
   health_check:
     endpoint: 0.0.0.0:13133
+  # Disk-backed export queues (the otelcol-queue volume, docker-compose.yml):
+  # accepted data waits here while a store is down, and survives a collector
+  # restart.
+  file_storage/queue:
+    directory: /var/lib/otelcol
+    create_directory: true   # lets `otelcol validate` run without the volume (CI)
 
 receivers:
   # OTLP/HTTP only: Traefik routes nothing but :4318 here, so a gRPC receiver
@@ -32,13 +38,29 @@ processors:
     timeout: 5s
     send_batch_size: 1024
 
+# Producers get 200 once a batch is queued, so a queued batch must not be
+# dropped: retry until the store accepts it (max_elapsed_time: 0). The queue
+# size (default 1000 batches per exporter) is the bound; when it is full the
+# receiver refuses new data and producers retry on their side.
 exporters:
   otlp_http/vm:
     endpoint: http://victoriametrics:8428/opentelemetry
+    sending_queue:
+      storage: file_storage/queue
+    retry_on_failure:
+      max_elapsed_time: 0
   otlp_http/vl:
     endpoint: http://victorialogs:9428/insert/opentelemetry
+    sending_queue:
+      storage: file_storage/queue
+    retry_on_failure:
+      max_elapsed_time: 0
   otlp_http/vt:
     endpoint: http://victoriatraces:10428/insert/opentelemetry
+    sending_queue:
+      storage: file_storage/queue
+    retry_on_failure:
+      max_elapsed_time: 0
 
 service:
   # Internal metrics on :8888, scraped by victoriametrics (not published).
@@ -50,7 +72,7 @@ service:
               prometheus:
                 host: 0.0.0.0
                 port: 8888
-  extensions: [health_check, bearertokenauth/server]
+  extensions: [health_check, bearertokenauth/server, file_storage/queue]
   pipelines:
     metrics:
       receivers: [otlp]

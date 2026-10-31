@@ -219,6 +219,14 @@ services:
       retries: 3
       start_period: 30s
 
+  # One-shot: the collector runs as uid 10001 in a FROM-scratch image, and a
+  # fresh named volume is root-owned, so hand the queue volume to that uid.
+  otel-collector-init:
+    image: busybox:${BUSYBOX_VERSION:-1.38.0}
+    command: ["chown", "10001:10001", "/var/lib/otelcol"]
+    volumes:
+      - otelcol-queue:/var/lib/otelcol
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.164.0}
     restart: unless-stopped
@@ -232,7 +240,12 @@ services:
       OTLP_TOKEN_NEXT: ${OTLP_TOKEN_NEXT:-${OTLP_TOKEN}}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Export queues (file_storage/queue in the config): data accepted while
+      # a store is down waits here until it is back.
+      - otelcol-queue:/var/lib/otelcol
     depends_on:
+      otel-collector-init:
+        condition: service_completed_successfully
       victoriametrics:
         condition: service_healthy
       victorialogs:
@@ -242,3 +255,4 @@ services:
 
 volumes:
   grafana-data:
+  otelcol-queue:
