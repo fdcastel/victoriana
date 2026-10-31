@@ -113,7 +113,7 @@ services:
       - "-storage.minFreeDiskSpaceBytes=${VL_MIN_FREE_DISK:-1GiB}"
     # No Docker healthcheck: the image is distroless since v1.52 (no shell or
     # wget). Health is watched by self-monitoring instead: `up` in
-    # victoriametrics and the upstream ServiceDown alert.
+    # victoriametrics and the ComponentDown alert.
 
   victoriatraces:
     image: victoriametrics/victoria-traces:${VT_VERSION:-v0.12.1}
