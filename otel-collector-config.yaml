@@ -1,7 +1,11 @@
 extensions:
+  # Either token is accepted. OTLP_TOKEN_NEXT defaults to OTLP_TOKEN
+  # (docker-compose.yml); set it to rotate without a flag day (README).
   bearertokenauth/server:
     scheme: Bearer
-    token: ${env:OTLP_TOKEN}
+    tokens:
+      - ${env:OTLP_TOKEN}
+      - ${env:OTLP_TOKEN_NEXT}
   # Probed by Traefik's load-balancer health check (traefik/dynamic/otlp.yml);
   # the image is FROM scratch, so Docker itself can't probe it.
   health_check:

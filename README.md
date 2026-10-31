@@ -173,8 +173,10 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 
 ## Operations
 
-- **Rotate the bearer token:** edit `OTLP_TOKEN` in `.env`, then
-  `docker compose up -d otel-collector`.
+- **Rotate the bearer token** (no flag day): set `OTLP_TOKEN_NEXT` to the new
+  token in `.env` and `docker compose up -d otel-collector` - both are now
+  accepted. Move every producer to the new token, then set `OTLP_TOKEN` to it,
+  remove `OTLP_TOKEN_NEXT`, and `docker compose up -d otel-collector` again.
 - **Bump an image:** edit the `*_VERSION` in `.env`, then
   `docker compose up -d <service>`.
 - **Reload rules:** drop files in `vmalert/rules/`, `docker compose restart vmalert`.
