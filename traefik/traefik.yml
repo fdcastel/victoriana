@@ -8,6 +8,11 @@
 # The :4318 entrypoint is identical in every mode; only the dynamic router's
 # TLS config and the client's http<->https change.
 
+# No update nag / telemetry: the image tag is pinned in docker-compose.yml.
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
 entryPoints:
   otlp:
     address: ":4318"

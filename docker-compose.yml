@@ -10,7 +10,7 @@ services:
   # config is no-TLS; copy ./traefik/examples/* over the defaults for ACME or
   # bring-your-own-cert. The single :4318 entrypoint is identical in every mode.
   traefik:
-    image: traefik:${TRAEFIK_VERSION:-v3.6}
+    image: traefik:${TRAEFIK_VERSION:-v3.6.17}
     container_name: victoriana-traefik
     restart: unless-stopped
     ports:

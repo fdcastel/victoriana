@@ -131,7 +131,7 @@ Image versions and retention are env-driven with sane defaults baked into
 
 | Image | Default | | Retention var | Default |
 |-------|---------|-|---------------|---------|
-| `traefik` | `v3.6` | | `VM_RETENTION_PERIOD` | `30d` |
+| `traefik` | `v3.6.17` | | `VM_RETENTION_PERIOD` | `30d` |
 | `victoriametrics/victoria-metrics` | `v1.142.0` | | `VL_RETENTION_PERIOD` | `30d` |
 | `victoriametrics/victoria-logs` | `v1.50.0` | | `VT_RETENTION_PERIOD` | `7d` |
 | `victoriametrics/victoria-traces` | `v0.8.2` | | | |
