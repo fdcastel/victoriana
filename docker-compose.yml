@@ -6,7 +6,7 @@ services:
   # ./traefik/dynamic/otlp.yml template. The :4318 entrypoint is identical in
   # every mode.
   traefik:
-    image: traefik:${TRAEFIK_VERSION:-v3.6.17}
+    image: traefik:${TRAEFIK_VERSION:-v3.7.17}
     restart: unless-stopped
     ports:
       - "4318:4318"                                  # OTLP ingress
