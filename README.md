@@ -46,17 +46,17 @@ docker compose up -d
 docker compose ps                  # wait for "healthy"
 ```
 
-Smoke test:
+Smoke test (the same script CI runs):
 
 ```sh
-TOKEN="$(grep ^OTLP_TOKEN= .env | cut -d= -f2-)"
-curl -s -o /dev/null -w '%{http_code}\n' \
-     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-     -X POST "http://localhost:4318/v1/metrics" \
-     -d '{"resourceMetrics":[{"scopeMetrics":[{"metrics":[{"name":"smoke","gauge":{"dataPoints":[{"asInt":"1","timeUnixNano":"'"$(date +%s%N)"'"}]}}]}]}]}'
-# Expect 200 (with token) and 401 (without). Then, within a few seconds:
-curl -s 'http://localhost:8428/api/v1/query?query=smoke'
+scripts/smoke.sh
 ```
+
+It checks that `:4318` rejects a request without the token, then sends one
+metric, one log and one span and waits until each is queryable in
+VictoriaMetrics, VictoriaLogs and VictoriaTraces. It reads `OTLP_TOKEN` and the
+TLS mode from `.env` to pick the endpoint; pass one explicitly to override
+(`scripts/smoke.sh https://otlp.example.com:4318`).
 
 ## TLS modes (`.env` only)
 
