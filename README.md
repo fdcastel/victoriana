@@ -107,6 +107,24 @@ two settings cover all three.
   default - recording rules still write back to VictoriaMetrics so dashboards
   see them; add `-notifier.url=...` for alert delivery.
 
+## Self-monitoring
+
+victoriana watches itself. VictoriaMetrics scrapes every component
+([victoriametrics/scrape.yml](victoriametrics/scrape.yml): the three stores,
+vmalert, Traefik, the collector, Grafana), and two drop-in directories ship
+pre-filled:
+
+- `grafana/dashboards/victoriana/` - **victoriana - stack overview** (is it
+  healthy: scrape health, firing alerts, TLS cert expiry, OTLP status codes,
+  collector throughput and refusals, storage), plus VictoriaMetrics' upstream
+  dashboards for VictoriaMetrics, VictoriaLogs, VictoriaTraces and vmalert.
+- `vmalert/rules/victoriana/` - VictoriaMetrics' upstream alert rules for each
+  Victoria component, plus `victoriana.yml` for the edge, the collector,
+  Grafana and certificate expiry.
+
+Firing alerts show in the overview dashboard and the vmalert UI; see
+[Dashboards & alert rules](#dashboards--alert-rules-drop-in) for delivery.
+
 ## Web UIs
 
 By default everything but the OTLP port is on `127.0.0.1`. **Grafana** is served
@@ -203,14 +221,18 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 ```
 docker-compose.yml          stack definition (Traefik always-on -> collector -> VM/VL/VT)
 otel-collector-config.yaml  collector pipelines + bearer-token auth
+victoriametrics/scrape.yml  self-monitoring scrape targets
+scripts/smoke.sh            end-to-end test (README + CI)
 traefik/
   dynamic/otlp.yml          OTLP router; a template rendered from OTLP_TLS_MODE
   dynamic/grafana.yml       Grafana router (web entrypoint)
 certs/                      bring-your-own-cert files (gitignored)
 grafana/
   provisioning/             datasources (stable uids) + dashboard provider
-  dashboards/               drop-in dashboard JSON (per-consumer subdirs)
-vmalert/rules/              drop-in alert/recording rule YAML
+  dashboards/               drop-in dashboard JSON (per-consumer subdirs, gitignored)
+    victoriana/             self-monitoring dashboards (tracked)
+vmalert/rules/              drop-in alert/recording rule YAML (per-consumer subdirs, gitignored)
+  victoriana/               self-monitoring alert rules (tracked)
 .env.example                copy to .env
 ```
 
