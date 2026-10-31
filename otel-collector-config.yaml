@@ -29,7 +29,7 @@ receivers:
 
 processors:
   # First in every pipeline: refuses data (clients get 429/503 and retry)
-  # before the container hits its mem_limit (docker-compose.yml).
+  # before the container hits its memory limit (docker-compose.yml).
   memory_limiter:
     check_interval: 1s
     limit_percentage: 80

@@ -18,18 +18,15 @@ services:
     # Traefik never merges static sources (a config file would silently win
     # over every flag below). Changing a flag or a .env value it reads and
     # running `docker compose up -d traefik` recreates the container.
+    # Traefik prints a few WRN lines at startup about defaults that may change
+    # (alias headers, encoded characters in paths). They are expected: we keep
+    # Traefik's defaults rather than add a flag per warning.
     command:
       - "--global.checkNewVersion=false"
       - "--global.sendAnonymousUsage=false"
       - "--entryPoints.otlp.address=:4318"
       - "--entryPoints.web.address=:80"         # Grafana UI (dynamic/grafana.yml)
       - "--entryPoints.traefik.address=:8080"   # internal: `healthcheck --ping`
-      # Drop request headers whose names alias another (X_Auth_User vs
-      # X-Auth-User). Our backends are Go and unaffected; this states the
-      # choice and silences Traefik's per-entrypoint startup warning.
-      - "--entryPoints.otlp.http.aliasHeadersStrategy=delete"
-      - "--entryPoints.web.http.aliasHeadersStrategy=delete"
-      - "--entryPoints.traefik.http.aliasHeadersStrategy=delete"
       - "--ping.entryPoint=traefik"
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.file.watch=true"
@@ -75,7 +72,9 @@ services:
       - "127.0.0.1:8428:8428"
     volumes:
       - ./data/vm:/storage
-      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
+      # The directory, not the file: git replaces files on checkout/pull, and
+      # a single-file bind mount would keep showing the old one.
+      - ./victoriametrics:/etc/victoriametrics:ro
     command:
       - "-storageDataPath=/storage"
       - "-httpListenAddr=:8428"
@@ -159,7 +158,10 @@ services:
       # and dashboards are provisioned from ./grafana/, the plugin is pinned),
       # and Docker sets the ownership Grafana (uid 472) needs.
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Only the two provisioning dirs we use, so the image's own (empty)
+      # plugins/, alerting/ ... stay visible and Grafana doesn't log errors.
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       victoriametrics:
@@ -190,7 +192,10 @@ services:
     # Instead Traefik probes the health_check extension on :13133 from outside
     # (traefik/dynamic/otlp.yml) and stops routing to an unhealthy collector.
     # The memory_limiter processor sizes itself from this limit.
-    mem_limit: ${OTELCOL_MEM_LIMIT:-512m}
+    deploy:
+      resources:
+        limits:
+          memory: ${OTELCOL_MEM_LIMIT:-512m}
     environment:
       OTLP_TOKEN: ${OTLP_TOKEN:?set OTLP_TOKEN in .env}
       OTLP_TOKEN_NEXT: ${OTLP_TOKEN_NEXT:-${OTLP_TOKEN}}
