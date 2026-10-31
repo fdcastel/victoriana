@@ -7,17 +7,34 @@ on:
 
 jobs:
   validate:
+    name: stack (OTLP_TLS_MODE=${{ matrix.tls }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # acme needs a real domain + DNS credentials, so it isn't tested here.
+        tls: [none, byocert]
     steps:
       - uses: actions/checkout@v5
 
       - name: Prepare env
-        run: echo "OTLP_TOKEN=ci-test-token" > .env
+        run: |
+          echo "OTLP_TOKEN=ci-test-token" > .env
+          echo "OTLP_TLS_MODE=${{ matrix.tls }}" >> .env
+
+      - name: Self-signed cert for localhost (byocert)
+        if: matrix.tls == 'byocert'
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
+            -addext subjectAltName=DNS:localhost \
+            -keyout certs/tls.key -out certs/tls.crt
+          # smoke.sh's curl must trust it; this also proves Traefik serves it.
+          echo "CURL_CA_BUNDLE=$PWD/certs/tls.crt" >> "$GITHUB_ENV"
 
       - name: Validate compose
         run: docker compose config -q
 
-      - name: Bring up stack (no-TLS default)
+      - name: Bring up stack
         run: docker compose up -d --wait --wait-timeout 180
 
       - name: Smoke test (metric + log + span through Traefik into each store)
