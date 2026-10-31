@@ -23,14 +23,17 @@ grafana/dashboards/
 ```
 
 Consumer subdirectories are gitignored: each consumer deploys its own folder
-out-of-band, and a `git pull` of victoriana never touches them.
+out-of-band, and a `git pull` of victoriana never touches them. The exception
+is `victoriana/`, victoriana's own self-monitoring dashboards (tracked).
 
 ## Format
 
-Standard Grafana dashboard JSON. Export from the Grafana UI (Share → Export
-→ "Export for sharing externally") or hand-author. Files are detected and
-loaded on `updateIntervalSeconds`; no Grafana restart needed for new
-dashboards or changes.
+Standard Grafana dashboard JSON. Export from the Grafana UI (Export → Export
+as JSON) with **"Export for sharing externally" off**: that option replaces
+datasource uids with `${DS_...}` inputs, which file provisioning never fills
+in, so the panels would find no datasource. Reference the stable uids below
+instead. Files are detected and loaded on `updateIntervalSeconds`; no Grafana
+restart needed for new dashboards or changes.
 
 `allowUiUpdates: false` is set, so changes made through the Grafana UI to a
 provisioned dashboard are saved as a copy and don't affect the JSON on disk.
@@ -52,5 +55,5 @@ Both VictoriaTraces entries query the same server; pick the surface by what the
 panel needs, not by the data.
 
 Correlations are pre-wired: a log line or span row with a `trace_id` field gets a
-**View trace** link (Jaeger view), and from Grafana 12.2 on a span offers
+**View trace** link (Jaeger view), and a span in the trace view offers
 **Related logs** (VictoriaLogs, `trace_id:="<id>"`, +/-5m).

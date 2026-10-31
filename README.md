@@ -16,9 +16,12 @@ app       --OTLP/HTTP + bearer-->  Traefik :4318  -->  otel-collector  -->  vict
                                    (TLS optional)        (bearer-auth,        victorialogs    (logs)
                                                           batches, fans out)  victoriatraces  (traces)
 
-operator  --HTTP-->  Traefik :80 (web) -->  grafana  -->  all three stores
-                     (off by default;       (pre-provisioned; dashboards from
-                      see TRAEFIK_WEB_BIND)  ./grafana/dashboards/)
+operator  --HTTP(S)-->  Traefik :80 (web) -->  grafana  -->  all three stores
+                        (loopback by default;  (pre-provisioned; dashboards from
+                         login/TLS optional)    ./grafana/dashboards/)
+
+                                                          victoriametrics scrapes every component
+                                                          (self-monitoring: victoriametrics/scrape.yml)
 
                                                           vmalert --> victoriametrics
                                                           (rules from ./vmalert/rules/)
@@ -30,9 +33,9 @@ nothing is published directly:
 - `:80` (`web` entrypoint) -> Grafana. **Off the network by default** (bound to
   loopback; reach via SSH tunnel) - set `TRAEFIK_WEB_BIND` to expose it.
 
-Whether an endpoint is plain HTTP, Let's Encrypt TLS, or your own certificate is
-**purely Traefik configuration** (`./traefik/`) - the compose file, the ports,
-and everything downstream are identical in every mode. VictoriaMetrics/Logs/
+Whether `:4318` is plain HTTP, Let's Encrypt TLS, or your own certificate is a
+**single `.env` setting** (`OTLP_TLS_MODE`, see [TLS modes](#tls-modes-env-only)) -
+the compose file, the ports, and everything downstream are identical in every mode. VictoriaMetrics/Logs/
 Traces and vmalert stay on loopback (SSH tunnel); the collector and Grafana are
 never published directly.
 
@@ -90,7 +93,8 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
 OTLP SDKs append `/v1/{traces,metrics,logs}` per signal automatically - the same
-two settings cover all three.
+two settings cover all three. Only OTLP/HTTP (`http/protobuf` or `http/json`) is
+accepted; there is no gRPC endpoint.
 
 ## Dashboards & alert rules (drop-in)
 
@@ -160,8 +164,9 @@ Apply with `docker compose up -d traefik`.
 
 ## Configuration
 
-Image versions and retention are env-driven with sane defaults baked into
-`docker-compose.yml`; override in `.env` (see `.env.example`).
+Everything tunable is env-driven with defaults baked into `docker-compose.yml`:
+image versions, retention, disk guards, the collector's memory limit, Grafana
+exposure, alert delivery. Override in `.env`; `.env.example` lists every knob.
 
 | Image | Default | | Retention var | Default |
 |-------|---------|-|---------------|---------|
@@ -232,12 +237,14 @@ How each kind of change takes effect:
     name; copy `./data/vm/snapshots/<name>/` off-host (rsync/rclone), then
     `curl 'http://localhost:8428/snapshot/delete?snapshot=<name>'`. Or use
     [`vmbackup`](https://docs.victoriametrics.com/vmbackup/).
-  - VictoriaLogs (`:9428`) / VictoriaTraces (`:10428`): data is in per-day
-    partitions; snapshot one with
+  - VictoriaLogs: data is in per-day partitions; snapshot one with
     `curl -X POST 'http://localhost:9428/internal/partition/snapshot/create?partition_prefix=YYYYMMDD'`,
     rsync the returned path, then delete the snapshot (also `POST`). Details and restore:
-    [VictoriaLogs backup docs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore)
-    (VictoriaTraces works the same way).
+    [VictoriaLogs backup docs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore).
+  - VictoriaTraces has no snapshot API: rsync `./data/vt/partitions/` twice, the
+    second time with the partition briefly detached, or use a consistent disk
+    snapshot. Details and restore:
+    [VictoriaTraces backup docs](https://docs.victoriametrics.com/victoriatraces/#backup-and-restore).
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
 
 ## Layout
