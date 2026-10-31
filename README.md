@@ -216,6 +216,21 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
   `docker compose down -v` discards it.
+- **Back up:** the irreplaceable state is `./data/vm`, `./data/vl`, `./data/vt`,
+  `./data/traefik/acme.json` and your `.env` (secrets: store it securely);
+  Grafana and all config are re-provisioned from the repo. Copying a running
+  store's files is not consistent - copy a snapshot instead (each store's
+  `/storage` is `./data/<store>` on the host):
+  - VictoriaMetrics: `curl http://localhost:8428/snapshot/create` returns a
+    name; copy `./data/vm/snapshots/<name>/` off-host (rsync/rclone), then
+    `curl 'http://localhost:8428/snapshot/delete?snapshot=<name>'`. Or use
+    [`vmbackup`](https://docs.victoriametrics.com/vmbackup/).
+  - VictoriaLogs (`:9428`) / VictoriaTraces (`:10428`): data is in per-day
+    partitions; snapshot one with
+    `/internal/partition/snapshot/create?partition_prefix=YYYYMMDD`, rsync the
+    returned path, then delete the snapshot. Details and restore:
+    [VictoriaLogs backup docs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore)
+    (VictoriaTraces works the same way).
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
 
 ## Layout
