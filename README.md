@@ -172,7 +172,7 @@ Image versions and retention are env-driven with sane defaults baked into
 | `victoriametrics/victoria-traces` | `v0.8.2` | | | |
 | `victoriametrics/vmalert` | `v1.142.0` | | | |
 | `grafana/grafana` | `11.4.0` | | | |
-| `otel/opentelemetry-collector-contrib` | `0.151.0` | | | |
+| `otel/opentelemetry-collector-contrib` | `0.164.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
 **Disk guards.** Retention is time-based, plus two guards on the filesystem
