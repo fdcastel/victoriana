@@ -14,9 +14,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 envval() {  # value of $1 from the environment, else from .env
-  if [ -n "${!1:-}" ]; then printf '%s' "${!1}"
-  elif [ -f .env ]; then grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true
+  local v=""
+  if [ -n "${!1:-}" ]; then v="${!1}"
+  elif [ -f .env ]; then v="$(grep -E "^$1=" .env | tail -n1 | cut -d= -f2- || true)"
   fi
+  # As compose reads it: no CR (CRLF files), no surrounding quotes.
+  v="${v%$'\r'}"
+  case "$v" in \"*\"|\'*\') v="${v:1:${#v}-2}" ;; esac
+  printf '%s' "$v"
 }
 
 TOKEN="$(envval OTLP_TOKEN)"
