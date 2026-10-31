@@ -4,7 +4,7 @@
   "tags": [
     "victoriana"
   ],
-  "description": "Is victoriana healthy? Edge, collector, stores, alerts. Per-component detail: the VictoriaMetrics/Logs/Traces and vmalert dashboards in this folder.",
+  "description": "Is victoriana healthy? Edge, collector, stores. Deep-dive dashboards per component: see the README (Self-monitoring).",
   "timezone": "",
   "refresh": "30s",
   "time": {
@@ -46,7 +46,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 14,
+        "w": 19,
         "h": 7
       },
       "targets": [
@@ -104,64 +104,6 @@
         }
       },
       "description": "One row per scrape job (victoriametrics/scrape.yml). Red = scrape failing."
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Firing alerts",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "x": 14,
-        "y": 1,
-        "w": 5,
-        "h": 7
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "victoriametrics"
-          },
-          "expr": "count(ALERTS{alertstate=\"firing\"}) or vector(0)",
-          "legendFormat": "",
-          "instant": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
-        }
-      },
-      "description": "Alerts vmalert currently has firing (rules in vmalert/rules/). Details: vmalert UI or the vmalert dashboard."
     },
     {
       "id": 4,
@@ -657,7 +599,7 @@
           ]
         }
       },
-      "description": "All three stores share this filesystem. VictoriaLogs/Traces drop their oldest days above 80% usage; every store stops ingesting below 1 GiB free."
+      "description": "All three stores share this filesystem. VictoriaLogs/Traces drop their oldest days once their own data passes VL_MAX_DISK_USAGE/VT_MAX_DISK_USAGE; every store stops ingesting below 1 GiB free."
     }
   ]
 }
