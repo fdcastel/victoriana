@@ -40,7 +40,7 @@ groups:
           description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
 
       - alert: ProcessNearFDLimits
-        expr: (process_max_fds - process_open_fds) < 100
+        expr: (process_max_fds{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"} - process_open_fds{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}) < 100
         for: 5m
         labels:
           severity: critical
@@ -51,7 +51,7 @@ groups:
             Consider to increase the limit as fast as possible.
 
       - alert: TooHighMemoryUsage
-        expr: (min_over_time(process_resident_memory_anon_bytes[10m]) / vm_available_memory_bytes) > 0.8
+        expr: (min_over_time(process_resident_memory_anon_bytes{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}[10m]) / vm_available_memory_bytes{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}) > 0.8
         for: 5m
         labels:
           severity: critical
@@ -62,7 +62,7 @@ groups:
             Consider to either increase available memory or decrease the load on the process.
 
       - alert: TooHighCPUUsage
-        expr: rate(process_cpu_seconds_total[5m]) / process_cpu_cores_available > 0.9
+        expr: rate(process_cpu_seconds_total{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}[5m]) / process_cpu_cores_available{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"} > 0.9
         for: 5m
         labels:
           severity: critical
@@ -85,7 +85,7 @@ groups:
             the service could work unreliably with delays in processing.
 
       - alert: TooManyErrorLogs
-        expr: sum(increase(vm_log_messages_total{level=~"error|fatal|panic"}[1m])) without (app_version, is_printed) > 0
+        expr: sum(increase(vm_log_messages_total{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*",level=~"error|fatal|panic"}[1m])) without (app_version, is_printed) > 0
         for: 5m
         labels:
           severity: warning
@@ -103,7 +103,7 @@ groups:
           source_code_url: '{{ with printf "last_over_time(vm_log_messages_total{job=%q,instance=%q,location=%q}[6m])" $labels.job $labels.instance $labels.location | query }}{{ with index . 0 }}https://l2s.victoriametrics.com/?app_version={{ .Labels.app_version }}&location={{ $labels.location | urlquery }}{{ end }}{{ end }}'
 
       - alert: TooManyLogs
-        expr: sum(increase(vm_log_messages_total{level="warn"}[5m])) without (app_version, location, is_printed) > 0
+        expr: sum(increase(vm_log_messages_total{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*",level="warn"}[5m])) without (app_version, location, is_printed) > 0
         for: 15m
         labels:
           severity: warning
@@ -118,7 +118,7 @@ groups:
             
             NOTE: The metric `vm_log_messages_total` tracks all log messages including those suppressed by `-loggerLevel`. Check the `is_printed` label to see whether the log was actually printed.
       - alert: ConcurrentInsertsHitTheLimit
-        expr: avg_over_time(vm_concurrent_insert_current[1m]) >= vm_concurrent_insert_capacity
+        expr: avg_over_time(vm_concurrent_insert_current{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}[1m]) >= vm_concurrent_insert_capacity{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}
         for: 15m
         labels:
           severity: warning
@@ -132,7 +132,7 @@ groups:
             it might be worth adjusting `-maxConcurrentInserts` cmd-line flag.
 
       - alert: TooHighQueryLoad
-        expr: increase(vm_concurrent_select_limit_timeout_total[5m]) > 0
+        expr: increase(vm_concurrent_select_limit_timeout_total{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}[5m]) > 0
         for: 15m
         labels:
           severity: warning
@@ -150,7 +150,7 @@ groups:
             See more at https://docs.victoriametrics.com/victoriametrics/troubleshooting/#slow-queries.
 
       - alert: RowsRejectedOnIngestion
-        expr: rate(vm_rows_ignored_total[5m]) > 0
+        expr: rate(vm_rows_ignored_total{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"}[5m]) > 0
         for: 15m
         labels:
           severity: warning
@@ -160,7 +160,7 @@ groups:
             following reason: \"{{ $labels.reason }}\""
 
       - alert: TooManySnapshots
-        expr: vm_snapshots > 2
+        expr: vm_snapshots{job=~".*(victoriametrics|vmselect|vminsert|vmstorage|vmagent|vmalert|vmsingle|vmalertmanager|vmauth).*"} > 2
         for: 2h
         labels:
           severity: warning
