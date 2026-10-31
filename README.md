@@ -204,14 +204,22 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 
 ## Operations
 
+How each kind of change takes effect:
+
+| You changed | Apply with |
+|-------------|-----------|
+| `.env`, `docker-compose.yml` | `docker compose up -d` (recreates only the affected services) |
+| `otel-collector-config.yaml` | `docker compose restart otel-collector` (`up -d` doesn't notice a bind-mounted file) |
+| `grafana/provisioning/` | `docker compose restart grafana` |
+| `./certs/tls.crt`, `tls.key` | `docker compose restart traefik` |
+| `traefik/dynamic/`, `victoriametrics/scrape.yml`, `grafana/dashboards/`, `vmalert/rules/` | nothing - re-read automatically (Traefik at once, the rest within ~60s) |
+
 - **Rotate the bearer token** (no flag day): set `OTLP_TOKEN_NEXT` to the new
   token in `.env` and `docker compose up -d otel-collector` - both are now
   accepted. Move every producer to the new token, then set `OTLP_TOKEN` to it,
   remove `OTLP_TOKEN_NEXT`, and `docker compose up -d otel-collector` again.
 - **Bump an image:** edit the `*_VERSION` in `.env`, then
   `docker compose up -d <service>`.
-- **Add or change rules / dashboards:** drop files in `vmalert/rules/` or
-  `grafana/dashboards/`; both are picked up within ~60s.
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
