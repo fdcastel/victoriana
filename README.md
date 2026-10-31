@@ -247,19 +247,23 @@ How each kind of change takes effect:
   `./data/traefik/acme.json` and your `.env` (secrets: store it securely);
   Grafana and all config are re-provisioned from the repo. Copying a running
   store's files is not consistent - copy a snapshot instead (each store's
-  `/storage` is `./data/<store>` on the host):
+  `/storage` is `./data/<store>` on the host). Snapshots are instant and cost no
+  space until the live data diverges; delete them once copied.
   - VictoriaMetrics: `curl http://localhost:8428/snapshot/create` returns a
-    name; copy `./data/vm/snapshots/<name>/` off-host (rsync/rclone), then
+    name. Copy it with `rsync -aL ./data/vm/snapshots/<name>/ <backup>/vm/` -
+    **`-L` is required**: the snapshot is a set of symlinks into the live data,
+    and without it the copy is just dangling links. Then
     `curl 'http://localhost:8428/snapshot/delete?snapshot=<name>'`. Or use
     [`vmbackup`](https://docs.victoriametrics.com/vmbackup/).
-  - VictoriaLogs: data is in per-day partitions; snapshot one with
-    `curl -X POST 'http://localhost:9428/internal/partition/snapshot/create?partition_prefix=YYYYMMDD'`,
-    rsync the returned path, then delete the snapshot (also `POST`). Details and restore:
-    [VictoriaLogs backup docs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore).
-  - VictoriaTraces has no snapshot API: rsync `./data/vt/partitions/` twice, the
-    second time with the partition briefly detached, or use a consistent disk
-    snapshot. Details and restore:
-    [VictoriaTraces backup docs](https://docs.victoriametrics.com/victoriatraces/#backup-and-restore).
+  - VictoriaLogs (`:9428`) and VictoriaTraces (`:10428`), same API:
+    `curl -X POST http://localhost:9428/internal/partition/snapshot/create`
+    snapshots every per-day partition and returns their paths, e.g.
+    `/storage/partitions/20261031/snapshots/<id>`. Copy each to
+    `<backup>/vl/partitions/<YYYYMMDD>/` (`rsync -a ./data/vl/partitions/<YYYYMMDD>/snapshots/<id>/ …`),
+    then `curl -X POST 'http://localhost:9428/internal/partition/snapshot/delete?path=<path>'`.
+  - **Restore** any of them: `docker compose stop <store>`, replace
+    `./data/<store>` with the backup (`<backup>/vm/` as is; for VL/VT, the
+    `partitions/` tree), `docker compose start <store>`.
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
 
 ## Layout
