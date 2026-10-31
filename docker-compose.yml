@@ -176,7 +176,7 @@ services:
       start_period: 15s
 
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-11.4.0}
+    image: grafana/grafana:${GRAFANA_VERSION:-13.3.0}
     restart: unless-stopped
     # Internal-only: Grafana is reached through Traefik's `web` entrypoint
     # (traefik/dynamic/grafana.yml), never published directly. Control its
@@ -188,8 +188,14 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
       # Pinned: an unpinned install yields a different plugin on every recreate.
+      # GF_INSTALL_PLUGINS is deprecated since Grafana 12 and only honoured with
+      # _FORCE; its replacement (GF_PLUGINS_PREINSTALL_SYNC) is ignored while
+      # preinstall is disabled, and enabling preinstall also downloads ~15
+      # unpinned, auto-updating catalog plugins on every start.
       GF_INSTALL_PLUGINS: victoriametrics-logs-datasource ${VL_PLUGIN_VERSION:-0.33.1}
-      # Don't let Grafana fetch its own "preinstalled" plugins (e.g. lokiexplore).
+      GF_INSTALL_PLUGINS_FORCE: "true"
+      # No catalog downloads beyond the line above (Jaeger, Prometheus etc. are
+      # bundled with Grafana).
       GF_PLUGINS_PREINSTALL_DISABLED: "true"
     volumes:
       # Named volume: nothing in Grafana's state is source of truth (datasources
