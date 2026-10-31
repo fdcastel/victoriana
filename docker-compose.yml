@@ -24,6 +24,12 @@ services:
       - "--entryPoints.otlp.address=:4318"
       - "--entryPoints.web.address=:80"         # Grafana UI (dynamic/grafana.yml)
       - "--entryPoints.traefik.address=:8080"   # internal: `healthcheck --ping`
+      # Drop request headers whose names alias another (X_Auth_User vs
+      # X-Auth-User). Our backends are Go and unaffected; this states the
+      # choice and silences Traefik's per-entrypoint startup warning.
+      - "--entryPoints.otlp.http.aliasHeadersStrategy=delete"
+      - "--entryPoints.web.http.aliasHeadersStrategy=delete"
+      - "--entryPoints.traefik.http.aliasHeadersStrategy=delete"
       - "--ping.entryPoint=traefik"
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.file.watch=true"
