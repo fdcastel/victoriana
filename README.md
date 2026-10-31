@@ -42,8 +42,7 @@ never published directly.
 cp .env.example .env
 $EDITOR .env                       # set OTLP_TOKEN  (openssl rand -hex 32)
 
-docker compose up -d
-docker compose ps                  # wait for "healthy"
+docker compose up -d --wait        # returns once every service is up/healthy
 ```
 
 Smoke test (the same script CI runs):
