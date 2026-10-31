@@ -3,11 +3,10 @@
 A small, batteries-included **OpenTelemetry observability stack** you can run
 with `docker compose up`. It accepts OTLP at a single bearer-authenticated
 endpoint and stores it across **VictoriaMetrics** (metrics), **VictoriaLogs**
-(logs), and **VictoriaTraces** (traces), with **Grafana** for dashboards and
-**vmalert** for recording rules and alerts.
+(logs), and **VictoriaTraces** (traces), with **Grafana** for dashboards.
 
 It is **project-agnostic**: point any app's OTLP exporter at it, and drop your
-own dashboards and alert rules into `grafana/dashboards/` and `vmalert/rules/`.
+own dashboards into `grafana/dashboards/`.
 
 ## Architecture
 
@@ -22,9 +21,6 @@ operator  --HTTP(S)-->  Traefik :80 (web) -->  grafana  -->  all three stores
 
                                                           victoriametrics scrapes every component
                                                           (self-monitoring: victoriametrics/scrape.yml)
-
-                                                          vmalert --> victoriametrics
-                                                          (rules from ./vmalert/rules/)
 ```
 
 **Traefik is the only edge.** Every network-reachable service sits behind it;
@@ -36,8 +32,8 @@ nothing is published directly:
 Whether `:4318` is plain HTTP, Let's Encrypt TLS, or your own certificate is a
 **single `.env` setting** (`OTLP_TLS_MODE`, see [TLS modes](#tls-modes-env-only)) -
 the compose file, the ports, and everything downstream are identical in every mode. VictoriaMetrics/Logs/
-Traces and vmalert stay on loopback (SSH tunnel); the collector and Grafana are
-never published directly.
+Traces stay on loopback (SSH tunnel); the collector and Grafana are never
+published directly.
 
 ## Quick start (no-TLS)
 
@@ -96,60 +92,48 @@ OTLP SDKs append `/v1/{traces,metrics,logs}` per signal automatically - the same
 two settings cover all three. Only OTLP/HTTP (`http/protobuf` or `http/json`) is
 accepted; there is no gRPC endpoint.
 
-## Dashboards & alert rules (drop-in)
+## Dashboards (drop-in)
 
-- **Dashboards:** drop Grafana dashboard JSON into `grafana/dashboards/`
-  (subdirectories become Grafana folders; scanned every 60s, no restart). Four
-  datasources are pre-provisioned with stable uids: `victoriametrics`,
-  `victorialogs`, and VictoriaTraces twice - `victoriatraces` (Jaeger API) and
-  `victoriatraces_logs` (LogsQL over spans). See
-  [grafana/dashboards/README.md](grafana/dashboards/README.md).
-- **Rules:** drop alert/recording rule YAML into `vmalert/rules/` (or a
-  per-consumer subdirectory); vmalert re-reads them every 60s, no restart. See
-  [vmalert/rules/README.md](vmalert/rules/README.md). Recording rules write
-  back to VictoriaMetrics. Alerts are evaluated and visible in the vmalert UI
-  and Grafana, but delivered nowhere until you set `VMALERT_NOTIFIER_URL` (an
-  Alertmanager, e.g. `http://alertmanager:9093`) in `.env` and run
-  `docker compose up -d vmalert`.
+Drop Grafana dashboard JSON into `grafana/dashboards/` (subdirectories become
+Grafana folders; scanned every 60s, no restart). Four datasources are
+pre-provisioned with stable uids: `victoriametrics`, `victorialogs`, and
+VictoriaTraces twice - `victoriatraces` (Jaeger API) and `victoriatraces_logs`
+(LogsQL over spans). See
+[grafana/dashboards/README.md](grafana/dashboards/README.md).
+
+There is no alerting component. To be notified, use Grafana's own alerting on
+these datasources, or add vmalert + Alertmanager in a `compose.override.yml`.
 
 ## Self-monitoring
 
 victoriana watches itself. VictoriaMetrics scrapes every component
 ([victoriametrics/scrape.yml](victoriametrics/scrape.yml): the three stores,
-vmalert, Traefik, the collector, Grafana), and two drop-in directories ship
-pre-filled:
-
-- `grafana/dashboards/victoriana/` - **victoriana - stack overview** (is it
-  healthy: scrape health, firing alerts, TLS cert expiry, OTLP status codes,
-  collector throughput and refusals, storage).
-- `vmalert/rules/victoriana/victoriana.yml` - any component down, store disk
-  space, the edge, the collector and certificate expiry.
+Traefik, the collector, Grafana), and `grafana/dashboards/victoriana/` ships
+**victoriana - stack overview**: is it healthy - scrape health, TLS cert
+expiry, OTLP status codes, collector throughput, refusals and export queue,
+storage.
 
 For deep dives, import VictoriaMetrics' own dashboards from grafana.com
 (Dashboards -> New -> Import, pick the VictoriaMetrics datasource):
 VictoriaMetrics single-node 10229, VictoriaLogs single-node 22084,
-VictoriaTraces single-node 24136, vmalert 14950.
-
-Firing alerts show in the overview dashboard and the vmalert UI; see
-[Dashboards & alert rules](#dashboards--alert-rules-drop-in) for delivery.
+VictoriaTraces single-node 24136.
 
 ## Web UIs
 
 By default everything but the OTLP port is on `127.0.0.1`. **Grafana** is served
 by Traefik's `web` entrypoint, bound to loopback by default; the Victoria
-services and vmalert bind to loopback directly. Reach them over SSH:
+services bind to loopback directly. Reach them over SSH:
 
 ```sh
 ssh -L 8080:localhost:80 \
     -L 8428:localhost:8428 -L 9428:localhost:9428 -L 10428:localhost:10428 \
-    -L 8880:localhost:8880 user@<host>
+    user@<host>
 ```
 
 - `http://localhost:8080/` - Grafana via Traefik (the four datasources come pre-provisioned)
 - `http://localhost:8428/vmui/` - VictoriaMetrics
 - `http://localhost:9428/select/vmui/` - VictoriaLogs
 - `http://localhost:10428/select/vmui/` - VictoriaTraces
-- `http://localhost:8880/vmalert/` - vmalert
 
 To expose Grafana on a network instead of tunnelling, set `TRAEFIK_WEB_BIND` in
 `.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one interface) - this binds
@@ -169,7 +153,7 @@ Apply with `docker compose up -d traefik`.
 
 Everything tunable is env-driven with defaults baked into `docker-compose.yml`:
 image versions, retention, disk guards, the collector's memory limit, Grafana
-exposure, alert delivery. Override in `.env`; `.env.example` lists every knob.
+exposure. Override in `.env`; `.env.example` lists every knob.
 
 | Image | Default | | Retention var | Default |
 |-------|---------|-|---------------|---------|
@@ -177,7 +161,6 @@ exposure, alert delivery. Override in `.env`; `.env.example` lists every knob.
 | `victoriametrics/victoria-metrics` | `v1.155.0` | | `VL_RETENTION_PERIOD` | `30d` |
 | `victoriametrics/victoria-logs` | `v1.53.0` | | `VT_RETENTION_PERIOD` | `7d` |
 | `victoriametrics/victoria-traces` | `v0.12.1` | | | |
-| `victoriametrics/vmalert` | `v1.155.0` | | | |
 | `grafana/grafana` | `13.3.0` | | | |
 | `otel/opentelemetry-collector-contrib` | `0.164.0` | | | |
 | `busybox` (one-shot `otel-collector-init`) | `1.38.0` | | | |
@@ -230,7 +213,7 @@ How each kind of change takes effect:
 | `otel-collector-config.yaml` | `docker compose restart otel-collector` (`up -d` doesn't notice a bind-mounted file) |
 | `grafana/provisioning/` | `docker compose restart grafana` |
 | `./certs/tls.crt`, `tls.key` | `docker compose restart traefik` |
-| `traefik/dynamic/`, `victoriametrics/scrape.yml`, `grafana/dashboards/`, `vmalert/rules/` | nothing - re-read automatically (Traefik at once, the rest within ~60s) |
+| `traefik/dynamic/`, `victoriametrics/scrape.yml`, `grafana/dashboards/` | nothing - re-read automatically (Traefik at once, the rest within ~60s) |
 
 - **Rotate the bearer token** (no flag day): set `OTLP_TOKEN_NEXT` to the new
   token in `.env` and `docker compose up -d otel-collector` - both are now
@@ -243,27 +226,18 @@ How each kind of change takes effect:
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
   `docker compose down -v` discards it, and also the collector's
   `otelcol-queue` volume, with any data not yet delivered to a store.
-- **Back up:** the irreplaceable state is `./data/vm`, `./data/vl`, `./data/vt`,
-  `./data/traefik/acme.json` and your `.env` (secrets: store it securely);
-  Grafana and all config are re-provisioned from the repo. Copying a running
-  store's files is not consistent - copy a snapshot instead (each store's
-  `/storage` is `./data/<store>` on the host). Snapshots are instant and cost no
-  space until the live data diverges; delete them once copied.
-  - VictoriaMetrics: `curl http://localhost:8428/snapshot/create` returns a
-    name. Copy it with `rsync -aL ./data/vm/snapshots/<name>/ <backup>/vm/` -
-    **`-L` is required**: the snapshot is a set of symlinks into the live data,
-    and without it the copy is just dangling links. Then
-    `curl 'http://localhost:8428/snapshot/delete?snapshot=<name>'`. Or use
-    [`vmbackup`](https://docs.victoriametrics.com/vmbackup/).
-  - VictoriaLogs (`:9428`) and VictoriaTraces (`:10428`), same API:
-    `curl -X POST http://localhost:9428/internal/partition/snapshot/create`
-    snapshots every per-day partition and returns their paths, e.g.
-    `/storage/partitions/20261031/snapshots/<id>`. Copy each to
-    `<backup>/vl/partitions/<YYYYMMDD>/` (`rsync -a ./data/vl/partitions/<YYYYMMDD>/snapshots/<id>/ …`),
-    then `curl -X POST 'http://localhost:9428/internal/partition/snapshot/delete?path=<path>'`.
-  - **Restore** any of them: `docker compose stop <store>`, replace
-    `./data/<store>` with the backup (`<backup>/vm/` as is; for VL/VT, the
-    `partitions/` tree), `docker compose start <store>`.
+- **Back up:** the state worth keeping is `./data/vm`, `./data/vl`,
+  `./data/vt`, `./data/traefik/acme.json` and your `.env` (secrets: store it
+  securely); Grafana and all config are re-provisioned from the repo. The
+  simplest consistent backup is offline: `docker compose stop`, copy those
+  paths, `docker compose start`. To back up without downtime, use each store's
+  snapshots - see the upstream docs for
+  [VictoriaMetrics](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#how-to-work-with-snapshots)
+  (or [`vmbackup`](https://docs.victoriametrics.com/vmbackup/)),
+  [VictoriaLogs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore) and
+  [VictoriaTraces](https://docs.victoriametrics.com/victoriatraces/#backup-and-restore).
+  VictoriaMetrics snapshots are symlinks into the live data: copy them with
+  `rsync -aL`, or you get dangling links.
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
 
 ## Layout
@@ -281,8 +255,6 @@ grafana/
   provisioning/             datasources (stable uids) + dashboard provider
   dashboards/               drop-in dashboard JSON (per-consumer subdirs, gitignored)
     victoriana/             self-monitoring dashboard (tracked)
-vmalert/rules/              drop-in alert/recording rule YAML (per-consumer subdirs, gitignored)
-  victoriana/               self-monitoring alert rules (tracked)
 .env.example                copy to .env
 ```
 
