@@ -68,9 +68,10 @@ No file in the repo is edited, so a deployed checkout stays clean.
 | `acme` | `OTLP_HOSTNAME`, `ACME_EMAIL`, `CLOUDFLARE_API_TOKEN` | Let's Encrypt cert, only for `Host(OTLP_HOSTNAME)`. |
 | `byocert` | - (drop `tls.crt` + `tls.key` into `./certs/`) | Your cert, any Host. |
 
-An unknown mode, or `acme` without `OTLP_HOSTNAME`, disables the OTLP router
-(every request gets 404) and Traefik logs why; it never falls back to plain
-HTTP. The router is the template [traefik/dynamic/otlp.yml](traefik/dynamic/otlp.yml);
+An unknown mode, or `acme` without `OTLP_HOSTNAME`, never falls back to plain
+HTTP: Traefik logs why and rejects all of `traefik/dynamic/`, so **Grafana's
+router goes too** - both `:4318` and the Grafana UI answer 404 until `.env` is
+fixed and `docker compose up -d traefik` is run. The router is the template [traefik/dynamic/otlp.yml](traefik/dynamic/otlp.yml);
 Traefik's static config is the `command:` of the `traefik` service in
 `docker-compose.yml`.
 

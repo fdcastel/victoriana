@@ -5,8 +5,9 @@
 #   acme     Let's Encrypt via the `le` resolver, only for Host(OTLP_HOSTNAME)
 #   byocert  your cert from ./certs/tls.crt + ./certs/tls.key, any Host
 # Changing the mode or hostname in .env: `docker compose up -d traefik`.
-# An unknown mode, or acme without a hostname, drops this router (Traefik logs
-# why) rather than falling back to plain HTTP.
+# An unknown mode, or acme without a hostname, fails this template (Traefik
+# logs why) rather than falling back to plain HTTP. Traefik then rejects every
+# file in this directory, so the Grafana router (grafana.yml) is down too.
 {{- $mode := env "OTLP_TLS_MODE" | default "none" }}
 {{- $host := env "OTLP_HOSTNAME" }}
 {{- if not (has $mode (list "none" "acme" "byocert")) }}
