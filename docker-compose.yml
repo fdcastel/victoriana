@@ -110,7 +110,7 @@ services:
     # victoriametrics and the upstream ServiceDown alert.
 
   victoriatraces:
-    image: victoriametrics/victoria-traces:${VT_VERSION:-v0.8.2}
+    image: victoriametrics/victoria-traces:${VT_VERSION:-v0.12.1}
     restart: unless-stopped
     ports:
       - "127.0.0.1:10428:10428"
@@ -123,12 +123,7 @@ services:
       # Same disk guards as victorialogs.
       - "-retention.maxDiskUsagePercent=${VT_MAX_DISK_USAGE_PERCENT:-80}"
       - "-storage.minFreeDiskSpaceBytes=${VT_MIN_FREE_DISK:-1GiB}"
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:10428/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+    # No Docker healthcheck: distroless since v0.10 (see victorialogs).
 
   vmalert:
     image: victoriametrics/vmalert:${VMALERT_VERSION:-v1.155.0}
@@ -210,7 +205,7 @@ services:
       victorialogs:
         condition: service_started
       victoriatraces:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
@@ -237,7 +232,7 @@ services:
       victorialogs:
         condition: service_started
       victoriatraces:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   grafana-data:
