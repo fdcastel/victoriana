@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "23 5 * * 1"
 
+# A newer push to the same branch/PR cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: stack (OTLP_TLS_MODE=${{ matrix.tls }})
