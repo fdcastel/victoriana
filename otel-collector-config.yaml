@@ -12,14 +12,12 @@ extensions:
     endpoint: 0.0.0.0:13133
 
 receivers:
+  # OTLP/HTTP only: Traefik routes nothing but :4318 here, so a gRPC receiver
+  # would be unreachable from outside the docker network.
   otlp:
     protocols:
       http:
         endpoint: 0.0.0.0:4318
-        auth:
-          authenticator: bearertokenauth/server
-      grpc:
-        endpoint: 0.0.0.0:4317
         auth:
           authenticator: bearertokenauth/server
 
