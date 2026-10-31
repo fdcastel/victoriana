@@ -55,7 +55,7 @@ jobs:
       - name: Validate collector config (pinned image)
         run: |
           img=$(docker compose config --format json | jq -r '.services["otel-collector"].image')
-          docker run --rm -v "$PWD/otel-collector-config.yaml:/c.yaml:ro" \
+          docker run --rm -v "$PWD/otel-collector/config.yaml:/c.yaml:ro" \
             -e OTLP_TOKEN=x -e OTLP_TOKEN_NEXT=x "$img" validate --config=/c.yaml
 
       - name: Bring up stack

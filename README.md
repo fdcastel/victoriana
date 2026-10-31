@@ -167,6 +167,16 @@ exposure. Override in `.env`; `.env.example` lists every knob.
 | `busybox` (one-shot `otel-collector-init`) | `1.38.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
+**Grafana plugin.** The VictoriaLogs datasource plugin is installed with
+`GF_INSTALL_PLUGINS` (+ `GF_INSTALL_PLUGINS_FORCE`), pinned to
+`VL_PLUGIN_VERSION`, with Grafana's plugin preinstall disabled. This is
+deliberate even though Grafana deprecates `GF_INSTALL_PLUGINS`: its supported
+replacement (`GF_PLUGINS_PREINSTALL`) always adds Grafana's default set of ~18
+unpinned, auto-updating plugins on top of the one we need. Everything else used
+here (Prometheus, Jaeger) is bundled with Grafana. CI's datasource-health check
+fails the day Grafana drops the legacy path; then switch to a two-line
+`Dockerfile` (`FROM grafana/grafana` + `grafana cli plugins install`).
+
 **Disk guards.** Retention is time-based, plus two size guards.
 VictoriaLogs and VictoriaTraces each have a byte budget (`VL_MAX_DISK_USAGE`,
 default 50 GiB; `VT_MAX_DISK_USAGE`, 20 GiB): past it, that store drops its own
@@ -211,7 +221,7 @@ How each kind of change takes effect:
 | You changed | Apply with |
 |-------------|-----------|
 | `.env`, `compose.yaml` | `docker compose up -d` (recreates only the affected services) |
-| `otel-collector-config.yaml` | `docker compose restart otel-collector` (`up -d` doesn't notice a bind-mounted file; restart also picks up a copy replaced by `git pull`) |
+| `otel-collector/config.yaml` | `docker compose restart otel-collector` (the collector doesn't reload its config, and `up -d` doesn't notice a bind-mounted file) |
 | `grafana/provisioning/` | `docker compose restart grafana` |
 | `./certs/tls.crt`, `tls.key` | `docker compose restart traefik` |
 | `traefik/dynamic/`, `victoriametrics/scrape.yml`, `grafana/dashboards/` | nothing - re-read automatically (Traefik at once, the rest within ~60s) |
@@ -245,7 +255,7 @@ How each kind of change takes effect:
 
 ```
 compose.yaml                stack definition (Traefik always-on -> collector -> VM/VL/VT)
-otel-collector-config.yaml  collector pipelines + bearer-token auth
+otel-collector/config.yaml  collector pipelines + bearer-token auth
 victoriametrics/scrape.yml  self-monitoring scrape targets
 scripts/smoke.sh            end-to-end test (README + CI)
 traefik/

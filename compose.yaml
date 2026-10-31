@@ -146,8 +146,9 @@ services:
       # Pinned: an unpinned install yields a different plugin on every recreate.
       # GF_INSTALL_PLUGINS is deprecated since Grafana 12 and only honoured with
       # _FORCE; its replacement (GF_PLUGINS_PREINSTALL_SYNC) is ignored while
-      # preinstall is disabled, and enabling preinstall also downloads ~15
-      # unpinned, auto-updating catalog plugins on every start.
+      # preinstall is disabled, and enabling preinstall also downloads ~18
+      # unpinned, auto-updating catalog plugins on every start (README,
+      # "Grafana plugin").
       GF_INSTALL_PLUGINS: victoriametrics-logs-datasource ${VL_PLUGIN_VERSION:-0.33.1}
       GF_INSTALL_PLUGINS_FORCE: "true"
       # No catalog downloads beyond the line above (Jaeger, Prometheus etc. are
@@ -200,7 +201,9 @@ services:
       OTLP_TOKEN: ${OTLP_TOKEN:?set OTLP_TOKEN in .env}
       OTLP_TOKEN_NEXT: ${OTLP_TOKEN_NEXT:-${OTLP_TOKEN}}
     volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # A directory, not the file: a single-file mount keeps the old inode
+      # when git replaces the file.
+      - ./otel-collector:/etc/otelcol-contrib:ro
       # Export queues (file_storage/queue in the config): data accepted while
       # a store is down waits here until it is back.
       - otelcol-queue:/var/lib/otelcol
