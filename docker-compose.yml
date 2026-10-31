@@ -107,9 +107,10 @@ services:
       - "-storageDataPath=/storage"
       - "-httpListenAddr=:9428"
       - "-retentionPeriod=${VL_RETENTION_PERIOD:-30d}"
-      # Drop the oldest days once the *filesystem* (shared with VM/VT) passes
-      # this usage, and stop accepting writes below the free-space floor.
-      - "-retention.maxDiskUsagePercent=${VL_MAX_DISK_USAGE_PERCENT:-80}"
+      # Drop the oldest days once VictoriaLogs' own data passes this size
+      # (independent of what else is on the disk), and stop accepting writes
+      # below the free-space floor.
+      - "-retention.maxDiskSpaceUsageBytes=${VL_MAX_DISK_USAGE:-50GiB}"
       - "-storage.minFreeDiskSpaceBytes=${VL_MIN_FREE_DISK:-1GiB}"
     # No Docker healthcheck: the image is distroless since v1.52 (no shell or
     # wget). Health is watched by self-monitoring instead: `up` in
@@ -127,7 +128,7 @@ services:
       - "-httpListenAddr=:10428"
       - "-retentionPeriod=${VT_RETENTION_PERIOD:-7d}"
       # Same disk guards as victorialogs.
-      - "-retention.maxDiskUsagePercent=${VT_MAX_DISK_USAGE_PERCENT:-80}"
+      - "-retention.maxDiskSpaceUsageBytes=${VT_MAX_DISK_USAGE:-20GiB}"
       - "-storage.minFreeDiskSpaceBytes=${VT_MIN_FREE_DISK:-1GiB}"
     # No Docker healthcheck: distroless since v0.10 (see victorialogs).
 

@@ -183,12 +183,15 @@ exposure, alert delivery. Override in `.env`; `.env.example` lists every knob.
 | `busybox` (one-shot `otel-collector-init`) | `1.38.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
-**Disk guards.** Retention is time-based, plus two guards on the filesystem
-holding `./data` (shared by all three stores): VictoriaLogs and VictoriaTraces
-drop their oldest days once it is 80% full (`VL_/VT_MAX_DISK_USAGE_PERCENT`),
-and every store stops accepting writes below 1 GiB free (`VM_/VL_/VT_MIN_FREE_DISK`).
-Metrics are never deleted early, so on a disk filled by something else
-VictoriaMetrics stops ingesting rather than losing history.
+**Disk guards.** Retention is time-based, plus two size guards.
+VictoriaLogs and VictoriaTraces each have a byte budget (`VL_MAX_DISK_USAGE`,
+default 50 GiB; `VT_MAX_DISK_USAGE`, 20 GiB): past it, that store drops its own
+oldest days, whatever else is on the disk. And every store stops accepting
+writes below 1 GiB free on the filesystem holding `./data`
+(`VM_/VL_/VT_MIN_FREE_DISK`). So when the disk fills up, the oldest logs and
+traces beyond their budgets go first; if it still fills (metrics have no size
+cap, or something else grows), all three stop ingesting and nothing more is
+deleted. Size the budgets so both, plus VictoriaMetrics' growth, fit.
 
 **Store outages.** The collector answers 200 once a batch is in its export
 queue, and that queue is on disk (the `otelcol-queue` volume): while a store is

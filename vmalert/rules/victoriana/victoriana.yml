@@ -23,7 +23,7 @@ groups:
           severity: critical
         annotations:
           summary: "{{ $labels.job }} disk is {{ $value | humanizePercentage }} full"
-          description: "Its data plus free space on ./data is over 80% used. VictoriaLogs/VictoriaTraces stop retaining at -retention.maxDiskUsagePercent=80 and all three refuse writes at -storage.minFreeDiskSpaceBytes; free space or grow the disk."
+          description: "Its data plus free space on ./data is over 80% used. VictoriaLogs/VictoriaTraces only trim themselves to their own budgets (VL_/VT_MAX_DISK_USAGE), and all three refuse writes at -storage.minFreeDiskSpaceBytes; free space, lower a budget or grow the disk."
 
       - alert: CollectorUnhealthy
         expr: traefik_service_server_up{service="otlp@file"} == 0
