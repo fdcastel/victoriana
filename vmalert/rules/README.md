@@ -25,8 +25,13 @@ vmalert/rules/
 Consumer subdirectories are gitignored: each consumer deploys its own folder
 out-of-band, and a `git pull` of victoriana never touches them.
 
-Files dropped in here are read on `vmalert` startup. `docker compose restart
-vmalert` after changing rule files; `vmalert` does not hot-reload by default.
+vmalert re-reads this directory every 60s (`-configCheckInterval`), so new or
+changed files take effect within a minute, no restart. A file that fails to
+parse is reported in `docker compose logs vmalert` and the previous rules stay
+active.
+
+Alerts are delivered only if `VMALERT_NOTIFIER_URL` is set in `.env`;
+otherwise they are evaluated and shown (vmalert UI, Grafana) but discarded.
 
 ## Format
 

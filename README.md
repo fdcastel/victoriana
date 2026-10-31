@@ -102,10 +102,12 @@ two settings cover all three.
   `victoriatraces_logs` (LogsQL over spans). See
   [grafana/dashboards/README.md](grafana/dashboards/README.md).
 - **Rules:** drop alert/recording rule YAML into `vmalert/rules/` (or a
-  per-consumer subdirectory), then `docker compose restart vmalert`. See
-  [vmalert/rules/README.md](vmalert/rules/README.md). No notifier is wired by
-  default - recording rules still write back to VictoriaMetrics so dashboards
-  see them; add `-notifier.url=...` for alert delivery.
+  per-consumer subdirectory); vmalert re-reads them every 60s, no restart. See
+  [vmalert/rules/README.md](vmalert/rules/README.md). Recording rules write
+  back to VictoriaMetrics. Alerts are evaluated and visible in the vmalert UI
+  and Grafana, but delivered nowhere until you set `VMALERT_NOTIFIER_URL` (an
+  Alertmanager, e.g. `http://alertmanager:9093`) in `.env` and run
+  `docker compose up -d vmalert`.
 
 ## Self-monitoring
 
@@ -208,8 +210,8 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
   remove `OTLP_TOKEN_NEXT`, and `docker compose up -d otel-collector` again.
 - **Bump an image:** edit the `*_VERSION` in `.env`, then
   `docker compose up -d <service>`.
-- **Reload rules:** drop files in `vmalert/rules/`, `docker compose restart vmalert`.
-- **Reload dashboards:** drop files in `grafana/dashboards/` (picked up in ~60s).
+- **Add or change rules / dashboards:** drop files in `vmalert/rules/` or
+  `grafana/dashboards/`; both are picked up within ~60s.
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
