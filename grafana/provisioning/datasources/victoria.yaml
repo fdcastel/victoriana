@@ -47,8 +47,8 @@ datasources:
     url: http://victoriatraces:10428/select/jaeger
     jsonData:
       # Traces -> logs: "Related logs" on a span, all logs of its trace.
-      # Grafana >= 12.2 only; older versions offer it for Loki-like log
-      # datasources only and ignore this.
+      # Needs Grafana >= 12.2 (earlier versions ignore it for this datasource
+      # type).
       tracesToLogsV2:
         datasourceUid: victorialogs
         spanStartTimeShift: "-5m"

@@ -57,11 +57,11 @@ jobs:
           G=http://localhost:80
           check() { code=$(curl -s -o /dev/null -w '%{http_code}' "$G$2"); echo "$1 -> $code"; [ "$code" = 200 ]; }
           check "grafana health" /api/health
-          for uid in victoriametrics victorialogs victoriatraces_logs; do
+          for uid in victoriametrics victorialogs victoriatraces victoriatraces_logs; do
             check "datasource $uid" "/api/datasources/uid/$uid/health"
           done
-          # Jaeger has no backend health check; query its API through the proxy.
-          check "datasource victoriatraces (jaeger)" /api/datasources/proxy/uid/victoriatraces/api/services
+          # And a real query through the Jaeger API (the smoke span's service).
+          check "jaeger services query" /api/datasources/proxy/uid/victoriatraces/api/services
 
       - name: Dump logs on failure
         if: failure()

@@ -182,8 +182,8 @@ services:
     # Internal-only: Grafana is reached through Traefik's `web` entrypoint
     # (traefik/dynamic/grafana.yml), never published directly. Control its
     # exposure with TRAEFIK_WEB_BIND on the traefik service above. Grafana ships
-    # anonymous-Admin (see README "Security model") -- only expose on a trusted
-    # network.
+    # anonymous-Admin (see README "Security model"): set GRAFANA_BASIC_AUTH_USERS
+    # before exposing it.
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin

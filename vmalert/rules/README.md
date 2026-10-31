@@ -23,7 +23,8 @@ vmalert/rules/
 ```
 
 Consumer subdirectories are gitignored: each consumer deploys its own folder
-out-of-band, and a `git pull` of victoriana never touches them.
+out-of-band, and a `git pull` of victoriana never touches them. The exception
+is `victoriana/`, victoriana's own self-monitoring rules (tracked).
 
 vmalert re-reads this directory every 60s (`-configCheckInterval`), so new or
 changed files take effect within a minute, no restart. A file that fails to
