@@ -1,16 +1,29 @@
-# victoriana's own alerts: the components the upstream rule files (upstream-*.yml)
-# don't cover - the Traefik edge, the collector, Grafana - and the TLS cert.
+# victoriana's alert rules: every scraped component's liveness, store disk
+# space, the Traefik edge, the collector, and the TLS cert.
 groups:
   - name: victoriana
     rules:
       - alert: ComponentDown
-        expr: up{job=~"traefik|otel-collector|grafana"} == 0
+        expr: up == 0
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: "{{ $labels.job }} is down"
-          description: "Scrapes of {{ $labels.instance }} have failed for 2m. (The Victoria components are covered by the upstream ServiceDown rules.)"
+          description: "Scrapes of {{ $labels.instance }} have failed for 2m."
+
+      - alert: DiskRunsOutOfSpace
+        expr: |
+          sum by (job) ({__name__=~"(vm|vl|vt)_data_size_bytes"})
+          /
+          (sum by (job) ({__name__=~"(vm|vl|vt)_free_disk_space_bytes"})
+           + sum by (job) ({__name__=~"(vm|vl|vt)_data_size_bytes"})) > 0.8
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} disk is {{ $value | humanizePercentage }} full"
+          description: "Its data plus free space on ./data is over 80% used. VictoriaLogs/VictoriaTraces stop retaining at -retention.maxDiskUsagePercent=80 and all three refuse writes at -storage.minFreeDiskSpaceBytes; free space or grow the disk."
 
       - alert: CollectorUnhealthy
         expr: traefik_service_server_up{service="otlp@file"} == 0

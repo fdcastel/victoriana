@@ -1,6 +1,6 @@
 # Self-monitoring: VictoriaMetrics scrapes every victoriana component.
-# Job names match what the upstream dashboards (grafana/dashboards/victoriana/)
-# and alert rules (vmalert/rules/victoriana/) select on. Re-read every 60s
+# The overview dashboard and alert rules select on these job names, so keep
+# them stable. Re-read every 60s
 # (-promscrape.configCheckInterval), so edits need no restart.
 global:
   scrape_interval: 15s

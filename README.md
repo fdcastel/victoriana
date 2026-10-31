@@ -121,11 +121,14 @@ pre-filled:
 
 - `grafana/dashboards/victoriana/` - **victoriana - stack overview** (is it
   healthy: scrape health, firing alerts, TLS cert expiry, OTLP status codes,
-  collector throughput and refusals, storage), plus VictoriaMetrics' upstream
-  dashboards for VictoriaMetrics, VictoriaLogs, VictoriaTraces and vmalert.
-- `vmalert/rules/victoriana/` - VictoriaMetrics' upstream alert rules for each
-  Victoria component, plus `victoriana.yml` for the edge, the collector,
-  Grafana and certificate expiry.
+  collector throughput and refusals, storage).
+- `vmalert/rules/victoriana/victoriana.yml` - any component down, store disk
+  space, the edge, the collector and certificate expiry.
+
+For deep dives, import VictoriaMetrics' own dashboards from grafana.com
+(Dashboards -> New -> Import, pick the VictoriaMetrics datasource):
+VictoriaMetrics single-node 10229, VictoriaLogs single-node 22084,
+VictoriaTraces single-node 24136, vmalert 14950.
 
 Firing alerts show in the overview dashboard and the vmalert UI; see
 [Dashboards & alert rules](#dashboards--alert-rules-drop-in) for delivery.
@@ -231,10 +234,7 @@ How each kind of change takes effect:
   accepted. Move every producer to the new token, then set `OTLP_TOKEN` to it,
   remove `OTLP_TOKEN_NEXT`, and `docker compose up -d otel-collector` again.
 - **Bump an image:** edit the `*_VERSION` in `.env`, then
-  `docker compose up -d <service>`. To change a Victoria default in
-  `docker-compose.yml` instead, also run `scripts/vendor-upstream.sh` so the
-  self-monitoring dashboards and rules match the new version (CI fails until
-  they do).
+  `docker compose up -d <service>`.
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
@@ -266,7 +266,6 @@ docker-compose.yml          stack definition (Traefik always-on -> collector -> 
 otel-collector-config.yaml  collector pipelines + bearer-token auth
 victoriametrics/scrape.yml  self-monitoring scrape targets
 scripts/smoke.sh            end-to-end test (README + CI)
-scripts/vendor-upstream.sh  refresh the upstream dashboards/rules from the pinned tags
 traefik/
   dynamic/otlp.yml          OTLP router; a template rendered from OTLP_TLS_MODE
   dynamic/grafana.yml       Grafana router (web entrypoint)
@@ -274,7 +273,7 @@ certs/                      bring-your-own-cert files (gitignored)
 grafana/
   provisioning/             datasources (stable uids) + dashboard provider
   dashboards/               drop-in dashboard JSON (per-consumer subdirs, gitignored)
-    victoriana/             self-monitoring dashboards (tracked)
+    victoriana/             self-monitoring dashboard (tracked)
 vmalert/rules/              drop-in alert/recording rule YAML (per-consumer subdirs, gitignored)
   victoriana/               self-monitoring alert rules (tracked)
 .env.example                copy to .env
