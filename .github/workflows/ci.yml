@@ -35,6 +35,15 @@ jobs:
           # smoke.sh's curl must trust it; this also proves Traefik serves it.
           echo "CURL_CA_BUNDLE=$PWD/certs/tls.crt" >> "$GITHUB_ENV"
 
+      - name: Grafana login (byocert)
+        if: matrix.tls == 'byocert'
+        run: |
+          # Two users, ", "-separated, single-quoted as .env.example says:
+          # exercises the template's split/trim and compose's quoting.
+          printf "GRAFANA_BASIC_AUTH_USERS='ci:%s, ci2:%s'\n" \
+            "$(openssl passwd -apr1 ci-pass)" "$(openssl passwd -apr1 ci2-pass)" >> .env
+          echo "GRAFANA_AUTH=ci:ci-pass" >> "$GITHUB_ENV"
+
       - name: Validate compose
         run: docker compose config -q
 
@@ -59,13 +68,64 @@ jobs:
           set -euo pipefail
           # TRAEFIK_WEB_BIND defaults to 127.0.0.1:80 -> Traefik web -> grafana.
           G=http://localhost:80
-          check() { code=$(curl -s -o /dev/null -w '%{http_code}' "$G$2"); echo "$1 -> $code"; [ "$code" = 200 ]; }
+          auth=(); [ -n "${GRAFANA_AUTH:-}" ] && auth=(-u "$GRAFANA_AUTH")
+          check() { code=$(curl -s -o /dev/null -w '%{http_code}' "${auth[@]}" "$G$2"); echo "$1 -> $code"; [ "$code" = 200 ]; }
           check "grafana health" /api/health
           for uid in victoriametrics victorialogs victoriatraces victoriatraces_logs; do
             check "datasource $uid" "/api/datasources/uid/$uid/health"
           done
           # And a real query through the Jaeger API (the smoke span's service).
           check "jaeger services query" /api/datasources/proxy/uid/victoriatraces/api/services
+
+      - name: Grafana login is enforced (byocert)
+        if: matrix.tls == 'byocert'
+        run: |
+          set -euo pipefail
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@" http://localhost:80/api/health; }
+          fail=0
+          for c in "401 anonymous" "200 ci:ci-pass" "200 ci2:ci2-pass" "401 ci:wrong"; do
+            want=${c%% *} who=${c#* }
+            if [ "$who" = anonymous ]; then got=$(code); else got=$(code -u "$who"); fi
+            echo "$who -> $got (want $want)"; [ "$got" = "$want" ] || fail=1
+          done
+          exit $fail
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  # The OTLP router template refuses bad settings instead of falling back to
+  # plain HTTP. Traefik alone is enough to check that; no stores needed.
+  otlp-guards:
+    name: traefik (OTLP_TLS_MODE guards)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: OTLP_TLS_MODE=bogus
+            log: "expected none, acme or byocert"
+          - env: OTLP_TLS_MODE=acme
+            log: "OTLP_TLS_MODE=acme requires OTLP_HOSTNAME"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare env (${{ matrix.env }})
+        run: printf 'OTLP_TOKEN=ci-test-token\n%s\n' "${{ matrix.env }}" > .env
+
+      - name: Bring up traefik only
+        run: docker compose up -d --wait --wait-timeout 60 traefik
+
+      - name: No OTLP router (404), and Traefik logs why
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:4318/v1/metrics)
+          echo ":4318 -> $code (want 404)"; [ "$code" = 404 ]
+          docker compose logs traefik | grep -F "${{ matrix.log }}"
 
       - name: Dump logs on failure
         if: failure()
