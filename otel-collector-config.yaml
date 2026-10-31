@@ -1,6 +1,6 @@
 extensions:
   # Either token is accepted. OTLP_TOKEN_NEXT defaults to OTLP_TOKEN
-  # (docker-compose.yml); set it to rotate without a flag day (README).
+  # (compose.yaml); set it to rotate without a flag day (README).
   bearertokenauth/server:
     scheme: Bearer
     tokens:
@@ -10,7 +10,7 @@ extensions:
   # the image is FROM scratch, so Docker itself can't probe it.
   health_check:
     endpoint: 0.0.0.0:13133
-  # Disk-backed export queues (the otelcol-queue volume, docker-compose.yml):
+  # Disk-backed export queues (the otelcol-queue volume, compose.yaml):
   # accepted data waits here while a store is down, and survives a collector
   # restart.
   file_storage/queue:
@@ -29,7 +29,7 @@ receivers:
 
 processors:
   # First in every pipeline: refuses data (clients get 429/503 and retry)
-  # before the container hits its memory limit (docker-compose.yml).
+  # before the container hits its memory limit (compose.yaml).
   memory_limiter:
     check_interval: 1s
     limit_percentage: 80

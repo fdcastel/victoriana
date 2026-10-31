@@ -1,6 +1,6 @@
 # OTLP router: the :4318 entrypoint -> otel-collector over plain HTTP (the
 # collector enforces the bearer token). TLS is selected by OTLP_TLS_MODE in
-# .env (passed to Traefik in docker-compose.yml); this file is a Go template.
+# .env (passed to Traefik in compose.yaml); this file is a Go template.
 #   none     plain HTTP, any Host (default)
 #   acme     Let's Encrypt via the `le` resolver, only for Host(OTLP_HOSTNAME)
 #   byocert  your cert from ./certs/tls.crt + ./certs/tls.key, any Host

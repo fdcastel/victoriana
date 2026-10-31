@@ -73,13 +73,13 @@ HTTP: Traefik logs why and rejects all of `traefik/dynamic/`, so **Grafana's
 router goes too** - both `:4318` and the Grafana UI answer 404 until `.env` is
 fixed and `docker compose up -d traefik` is run. The router is the template [traefik/dynamic/otlp.yml](traefik/dynamic/otlp.yml);
 Traefik's static config is the `command:` of the `traefik` service in
-`docker-compose.yml`.
+`compose.yaml`.
 
 ACME uses the DNS-01 challenge (works for endpoints not reachable on :80/:443)
 via Cloudflare; the cert and account persist in `./data/traefik/acme.json`.
 Another [Traefik DNS provider](https://doc.traefik.io/traefik/https/acme/#providers)
 needs `dnsChallenge.provider` and its credential variables changed on the
-`traefik` service in `docker-compose.yml`.
+`traefik` service in `compose.yaml`.
 
 ## Sending OTLP from an app
 
@@ -152,7 +152,7 @@ Apply with `docker compose up -d traefik`.
 
 ## Configuration
 
-Everything tunable is env-driven with defaults baked into `docker-compose.yml`:
+Everything tunable is env-driven with defaults baked into `compose.yaml`:
 image versions, retention, disk guards, the collector's memory limit, Grafana
 exposure. Override in `.env`; `.env.example` lists every knob.
 
@@ -210,7 +210,7 @@ How each kind of change takes effect:
 
 | You changed | Apply with |
 |-------------|-----------|
-| `.env`, `docker-compose.yml` | `docker compose up -d` (recreates only the affected services) |
+| `.env`, `compose.yaml` | `docker compose up -d` (recreates only the affected services) |
 | `otel-collector-config.yaml` | `docker compose restart otel-collector` (`up -d` doesn't notice a bind-mounted file; restart also picks up a copy replaced by `git pull`) |
 | `grafana/provisioning/` | `docker compose restart grafana` |
 | `./certs/tls.crt`, `tls.key` | `docker compose restart traefik` |
@@ -244,7 +244,7 @@ How each kind of change takes effect:
 ## Layout
 
 ```
-docker-compose.yml          stack definition (Traefik always-on -> collector -> VM/VL/VT)
+compose.yaml                stack definition (Traefik always-on -> collector -> VM/VL/VT)
 otel-collector-config.yaml  collector pipelines + bearer-token auth
 victoriametrics/scrape.yml  self-monitoring scrape targets
 scripts/smoke.sh            end-to-end test (README + CI)
