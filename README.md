@@ -168,7 +168,7 @@ Image versions and retention are env-driven with sane defaults baked into
 |-------|---------|-|---------------|---------|
 | `traefik` | `v3.7.17` | | `VM_RETENTION_PERIOD` | `30d` |
 | `victoriametrics/victoria-metrics` | `v1.155.0` | | `VL_RETENTION_PERIOD` | `30d` |
-| `victoriametrics/victoria-logs` | `v1.50.0` | | `VT_RETENTION_PERIOD` | `7d` |
+| `victoriametrics/victoria-logs` | `v1.53.0` | | `VT_RETENTION_PERIOD` | `7d` |
 | `victoriametrics/victoria-traces` | `v0.8.2` | | | |
 | `victoriametrics/vmalert` | `v1.155.0` | | | |
 | `grafana/grafana` | `11.4.0` | | | |
@@ -235,8 +235,8 @@ How each kind of change takes effect:
     [`vmbackup`](https://docs.victoriametrics.com/vmbackup/).
   - VictoriaLogs (`:9428`) / VictoriaTraces (`:10428`): data is in per-day
     partitions; snapshot one with
-    `/internal/partition/snapshot/create?partition_prefix=YYYYMMDD`, rsync the
-    returned path, then delete the snapshot. Details and restore:
+    `curl -X POST 'http://localhost:9428/internal/partition/snapshot/create?partition_prefix=YYYYMMDD'`,
+    rsync the returned path, then delete the snapshot (also `POST`). Details and restore:
     [VictoriaLogs backup docs](https://docs.victoriametrics.com/victorialogs/#backup-and-restore)
     (VictoriaTraces works the same way).
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
