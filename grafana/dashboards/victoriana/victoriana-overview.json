@@ -367,7 +367,7 @@
       "gridPos": {
         "x": 0,
         "y": 18,
-        "w": 24,
+        "w": 16,
         "h": 7
       },
       "targets": [
@@ -395,7 +395,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum by (exporter) (rate({__name__=~\"otelcol_exporter_send_failed_.+\"}[$__rate_interval]))",
+          "expr": "sum by (exporter) (rate({__name__=~\"otelcol_exporter_send_failed_.+\"}[$__rate_interval])) or sum by (exporter) (otelcol_exporter_queue_capacity) * 0",
           "legendFormat": "export failed: {{exporter}}"
         }
       ],
@@ -415,7 +415,70 @@
           "sort": "desc"
         }
       },
-      "description": "Should be empty. refused = memory_limiter backpressure (producers retry); export failed = a store is not accepting data."
+      "description": "Should stay at 0. refused = memory_limiter backpressure or a full export queue (producers retry); failed = the receiver could not hand data on; export failed = a store rejected data permanently and it was dropped (send_failed only exists after the first failure, hence the explicit 0)."
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Export queue fill",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 18,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "victoriametrics"
+          },
+          "expr": "max by (exporter) (otelcol_exporter_queue_size / otelcol_exporter_queue_capacity)",
+          "legendFormat": "{{exporter}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "The collector's on-disk export queue per store: batches waiting while a store is down or slow, drained when it is back (nothing is dropped). Batches already being retried (up to 10 per store) are not counted, so a short outage on a quiet stack can read 0. At 100% the collector refuses new data."
     },
     {
       "id": 10,
