@@ -138,6 +138,7 @@ Image versions and retention are env-driven with sane defaults baked into
 | `victoriametrics/vmalert` | `v1.142.0` | | | |
 | `grafana/grafana` | `11.4.0` | | | |
 | `otel/opentelemetry-collector-contrib` | `0.151.0` | | | |
+| `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
 
 VictoriaMetrics runs with `-opentelemetry.usePrometheusNaming=true` so OTLP
 metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,

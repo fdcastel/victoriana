@@ -134,7 +134,10 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
-      GF_INSTALL_PLUGINS: victoriametrics-logs-datasource
+      # Pinned: an unpinned install yields a different plugin on every recreate.
+      GF_INSTALL_PLUGINS: victoriametrics-logs-datasource ${VL_PLUGIN_VERSION:-0.33.1}
+      # Don't let Grafana fetch its own "preinstalled" plugins (e.g. lokiexplore).
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
     volumes:
       - ./data/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
