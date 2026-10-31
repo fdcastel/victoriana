@@ -22,6 +22,9 @@ vmalert/rules/
     └── alerts.yml               ← app-b's alerts
 ```
 
+Consumer subdirectories are gitignored: each consumer deploys its own folder
+out-of-band, and a `git pull` of victoriana never touches them.
+
 Files dropped in here are read on `vmalert` startup. `docker compose restart
 vmalert` after changing rule files; `vmalert` does not hot-reload by default.
 

@@ -22,6 +22,9 @@ grafana/dashboards/
     └── errors.json
 ```
 
+Consumer subdirectories are gitignored: each consumer deploys its own folder
+out-of-band, and a `git pull` of victoriana never touches them.
+
 ## Format
 
 Standard Grafana dashboard JSON. Export from the Grafana UI (Share → Export
