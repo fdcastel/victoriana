@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly, so breakage from outside the repo (plugin downloads, the runner
+  # image, Docker Hub) surfaces without waiting for a push.
+  schedule:
+    - cron: "23 5 * * 1"
 
 jobs:
   validate:
@@ -34,18 +38,30 @@ jobs:
       - name: Validate compose
         run: docker compose config -q
 
+      - name: Validate collector config (pinned image)
+        run: |
+          img=$(docker compose config --format json | jq -r '.services["otel-collector"].image')
+          docker run --rm -v "$PWD/otel-collector-config.yaml:/c.yaml:ro" \
+            -e OTLP_TOKEN=x -e OTLP_TOKEN_NEXT=x "$img" validate --config=/c.yaml
+
       - name: Bring up stack
         run: docker compose up -d --wait --wait-timeout 180
 
       - name: Smoke test (metric + log + span through Traefik into each store)
         run: scripts/smoke.sh
 
-      - name: Grafana reachable through Traefik (web entrypoint)
+      - name: Grafana and its datasources, through Traefik (web entrypoint)
         run: |
           set -euo pipefail
           # TRAEFIK_WEB_BIND defaults to 127.0.0.1:80 -> Traefik web -> grafana.
-          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:80/api/health)
-          echo "Grafana via Traefik :80 -> $code"; [ "$code" = "200" ]
+          G=http://localhost:80
+          check() { code=$(curl -s -o /dev/null -w '%{http_code}' "$G$2"); echo "$1 -> $code"; [ "$code" = 200 ]; }
+          check "grafana health" /api/health
+          for uid in victoriametrics victorialogs victoriatraces_logs; do
+            check "datasource $uid" "/api/datasources/uid/$uid/health"
+          done
+          # Jaeger has no backend health check; query its API through the proxy.
+          check "datasource victoriatraces (jaeger)" /api/datasources/proxy/uid/victoriatraces/api/services
 
       - name: Dump logs on failure
         if: failure()
