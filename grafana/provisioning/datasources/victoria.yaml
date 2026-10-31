@@ -19,6 +19,17 @@ datasources:
     type: victoriametrics-logs-datasource
     access: proxy
     url: http://victorialogs:9428
+    jsonData:
+      # Logs -> traces: a log's `trace_id` field links to that trace in the
+      # Jaeger view. (`$$` stops Grafana's provisioning from reading
+      # `${__value.raw}` as an environment variable.)
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          url: '$${__value.raw}'
+          urlDisplayLabel: View trace
+          datasourceUid: victoriatraces
 
   # VictoriaTraces exposes two query surfaces on the same server: the
   # Jaeger-compatible search API (this entry) and the LogsQL endpoint
@@ -34,9 +45,28 @@ datasources:
     type: jaeger
     access: proxy
     url: http://victoriatraces:10428/select/jaeger
+    jsonData:
+      # Traces -> logs: "Related logs" on a span, all logs of its trace.
+      # Grafana >= 12.2 only; older versions offer it for Loki-like log
+      # datasources only and ignore this.
+      tracesToLogsV2:
+        datasourceUid: victorialogs
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+        customQuery: true
+        query: 'trace_id:="$${__trace.traceId}"'
 
   - name: VictoriaTraces (LogsQL)
     uid: victoriatraces_logs
     type: victoriametrics-logs-datasource
     access: proxy
     url: http://victoriatraces:10428
+    jsonData:
+      # Spans-as-rows -> the span's trace in the Jaeger view.
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          url: '$${__value.raw}'
+          urlDisplayLabel: View trace
+          datasourceUid: victoriatraces

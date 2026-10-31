@@ -50,3 +50,7 @@ Reference datasources by these stable uids (provisioned in
 
 Both VictoriaTraces entries query the same server; pick the surface by what the
 panel needs, not by the data.
+
+Correlations are pre-wired: a log line or span row with a `trace_id` field gets a
+**View trace** link (Jaeger view), and from Grafana 12.2 on a span offers
+**Related logs** (VictoriaLogs, `trace_id:="<id>"`, +/-5m).
