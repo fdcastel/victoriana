@@ -29,6 +29,9 @@ services:
       - "--providers.file.watch=true"
       - "--log.level=INFO"
       - "--accessLog=true"
+      # Skip 404s: internet scanners probing :4318 would otherwise be most of
+      # the log. 401s (bad/missing token) are kept.
+      - "--accessLog.filters.statusCodes=100-403,405-599"
       # Let's Encrypt resolver `le`, DNS-01 via Cloudflare. Always defined;
       # harmless until a router references it (no account, no LE traffic).
       # Cert + account persist in ./data/traefik/acme.json.
