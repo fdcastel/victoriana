@@ -167,10 +167,10 @@ Image versions and retention are env-driven with sane defaults baked into
 | Image | Default | | Retention var | Default |
 |-------|---------|-|---------------|---------|
 | `traefik` | `v3.7.17` | | `VM_RETENTION_PERIOD` | `30d` |
-| `victoriametrics/victoria-metrics` | `v1.142.0` | | `VL_RETENTION_PERIOD` | `30d` |
+| `victoriametrics/victoria-metrics` | `v1.155.0` | | `VL_RETENTION_PERIOD` | `30d` |
 | `victoriametrics/victoria-logs` | `v1.50.0` | | `VT_RETENTION_PERIOD` | `7d` |
 | `victoriametrics/victoria-traces` | `v0.8.2` | | | |
-| `victoriametrics/vmalert` | `v1.142.0` | | | |
+| `victoriametrics/vmalert` | `v1.155.0` | | | |
 | `grafana/grafana` | `11.4.0` | | | |
 | `otel/opentelemetry-collector-contrib` | `0.164.0` | | | |
 | `victoriametrics-logs-datasource` (Grafana plugin, `VL_PLUGIN_VERSION`) | `0.33.1` | | | |
