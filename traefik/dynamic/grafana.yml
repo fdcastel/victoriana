@@ -1,14 +1,41 @@
-# Grafana UI router: forward the `web` entrypoint to Grafana over the internal
-# docker network. Grafana is never published directly; it is only reachable
-# through Traefik. Whether the `web` entrypoint is on the LAN or loopback is set
-# by TRAEFIK_WEB_BIND in docker-compose.yml (default loopback -> SSH tunnel).
+# Grafana UI router: the `web` entrypoint -> Grafana over the internal docker
+# network. Grafana is never published directly; TRAEFIK_WEB_BIND decides where
+# `web` listens (default loopback -> SSH tunnel). This file is a Go template,
+# driven by two optional .env settings (apply: `docker compose up -d traefik`):
+#   GRAFANA_BASIC_AUTH_USERS  htpasswd lines, comma-separated: put a login in
+#                             front of Grafana's anonymous Admin.
+#   GRAFANA_HOSTNAME          serve only this Host, over HTTPS with a Let's
+#                             Encrypt cert from the `le` resolver.
+{{- $users := env "GRAFANA_BASIC_AUTH_USERS" }}
+{{- $host := env "GRAFANA_HOSTNAME" }}
 http:
   routers:
     grafana:
       entryPoints:
         - web
+{{- if $host }}
+      rule: "Host(`{{ $host }}`)"
+      tls:
+        certResolver: le
+{{- else }}
       rule: "PathPrefix(`/`)"
+{{- end }}
+{{- if $users }}
+      middlewares:
+        - grafana-auth
+{{- end }}
       service: grafana
+{{- if $users }}
+  middlewares:
+    grafana-auth:
+      basicAuth:
+        # Grafana doesn't use these credentials; don't forward them.
+        removeHeader: true
+        users:
+{{- range splitList "," $users }}
+          - {{ trim . | quote }}
+{{- end }}
+{{- end }}
   services:
     grafana:
       loadBalancer:

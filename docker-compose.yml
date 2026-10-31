@@ -40,6 +40,9 @@ services:
       # Read by the dynamic/otlp.yml template: none | acme | byocert.
       OTLP_TLS_MODE: ${OTLP_TLS_MODE:-none}
       OTLP_HOSTNAME: ${OTLP_HOSTNAME:-}
+      # Read by the dynamic/grafana.yml template; both optional.
+      GRAFANA_BASIC_AUTH_USERS: ${GRAFANA_BASIC_AUTH_USERS:-}
+      GRAFANA_HOSTNAME: ${GRAFANA_HOSTNAME:-}
       # Read by the Cloudflare DNS provider; empty unless you use ACME.
       CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     volumes:
