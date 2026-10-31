@@ -216,7 +216,7 @@ services:
       start_period: 30s
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.151.0}
+    image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.164.0}
     restart: unless-stopped
     # No Docker healthcheck: the image is FROM scratch (no shell, wget or curl).
     # Instead Traefik probes the health_check extension on :13133 from outside
