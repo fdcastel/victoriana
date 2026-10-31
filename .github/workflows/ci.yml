@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -10,13 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Validate compose
-        run: docker compose config -q
-
       - name: Prepare env + data dir
         run: |
           echo "OTLP_TOKEN=ci-test-token" > .env
           sudo mkdir -p data/grafana && sudo chown -R 472:472 data/grafana
+
+      - name: Validate compose
+        run: docker compose config -q
 
       - name: Bring up stack (no-TLS default)
         run: docker compose up -d --wait --wait-timeout 180
