@@ -1,7 +1,7 @@
 # Grafana dashboards drop-in directory
 
 This directory is mounted into the `grafana` container at
-`/var/lib/grafana/dashboards`. The file provider configured at
+`/etc/grafana/dashboards`. The file provider configured at
 [../provisioning/dashboards/dashboards.yaml](../provisioning/dashboards/dashboards.yaml)
 scans this path on startup and every 60s afterwards.
 

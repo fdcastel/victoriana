@@ -42,8 +42,6 @@ never published directly.
 cp .env.example .env
 $EDITOR .env                       # set OTLP_TOKEN  (openssl rand -hex 32)
 
-mkdir -p data/grafana && sudo chown 472:472 data/grafana   # Grafana runs as uid 472
-
 docker compose up -d
 docker compose ps                  # wait for "healthy"
 ```
@@ -175,7 +173,9 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 - **Reload rules:** drop files in `vmalert/rules/`, `docker compose restart vmalert`.
 - **Reload dashboards:** drop files in `grafana/dashboards/` (picked up in ~60s).
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
-  (keep `data/traefik/` to preserve any ACME cert).
+  (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
+  `grafana-data` named volume and holds nothing that isn't re-provisioned;
+  `docker compose down -v` discards it.
 - **Logs:** `docker compose logs -f otel-collector` / `... traefik`.
 
 ## Layout

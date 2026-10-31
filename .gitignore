@@ -1,7 +1,7 @@
 # Secrets + local overrides
 .env
 
-# Runtime data (bind mounts: VM/VL/VT storage, Grafana state, ACME acme.json)
+# Runtime data (bind mounts: VM/VL/VT storage, ACME acme.json)
 /data/
 
 # Bring-your-own-cert material
