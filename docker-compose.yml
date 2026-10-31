@@ -19,11 +19,32 @@ services:
       # SSH tunnel); set TRAEFIK_WEB_BIND to expose on a network, e.g.
       # "0.0.0.0:80" (LAN) or "10.0.0.5:80" (one interface).
       - "${TRAEFIK_WEB_BIND:-127.0.0.1:80}:80"
+    # Static config. It lives here, not in a traefik.yml, so it can read .env;
+    # Traefik never merges static sources (a config file would silently win
+    # over every flag below). Changing a flag or a .env value it reads and
+    # running `docker compose up -d traefik` recreates the container.
+    command:
+      - "--global.checkNewVersion=false"
+      - "--global.sendAnonymousUsage=false"
+      - "--entryPoints.otlp.address=:4318"
+      - "--entryPoints.web.address=:80"         # Grafana UI (dynamic/grafana.yml)
+      - "--entryPoints.traefik.address=:8080"   # internal: `healthcheck --ping`
+      - "--ping.entryPoint=traefik"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--log.level=INFO"
+      - "--accessLog=true"
+      # Let's Encrypt resolver `le`, DNS-01 via Cloudflare. Always defined;
+      # harmless until a router references it (no account, no LE traffic).
+      # Cert + account persist in ./data/traefik/acme.json.
+      - "--certificatesResolvers.le.acme.email=${ACME_EMAIL:-}"
+      - "--certificatesResolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesResolvers.le.acme.dnsChallenge.provider=cloudflare"
+      - "--certificatesResolvers.le.acme.dnsChallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
     environment:
-      # Consumed by lego only when the ACME example is active; empty otherwise.
+      # Read by the Cloudflare DNS provider; empty unless you use ACME.
       CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     volumes:
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./data/traefik:/letsencrypt
       - ./certs:/certs:ro

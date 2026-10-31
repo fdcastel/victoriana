@@ -62,14 +62,14 @@ curl -s 'http://localhost:8428/api/v1/query?query=smoke'
 
 ## TLS modes (Traefik config, no compose changes)
 
-The endpoint stays `:4318` in every mode; only `./traefik/` and the client's
-`http`/`https` change. Only `./traefik/dynamic/` hot-reloads - **static
-`traefik.yml` changes need `docker compose up -d --force-recreate traefik`.**
+The endpoint stays `:4318` in every mode; only `./traefik/dynamic/` and the
+client's `http`/`https` change. Traefik's static config is the `command:` of the
+`traefik` service in `docker-compose.yml` (it reads `ACME_EMAIL` from `.env`).
 
 | Mode | How |
 |------|-----|
 | **no-TLS** (default) | Ships as-is. Plain HTTP on `:4318`, bearer enforced at the collector. Good for a trusted LAN / behind another proxy. |
-| **ACME (Let's Encrypt)** | `cp traefik/examples/traefik.acme.yml traefik/traefik.yml` (edit the email) and `cp traefik/examples/otlp.acme.yml traefik/dynamic/otlp.yml` (edit the `Host`). Set your DNS-provider token (Cloudflare: `CLOUDFLARE_API_TOKEN` in `.env`). Then `docker compose up -d --force-recreate traefik`. |
+| **ACME (Let's Encrypt)** | Set `ACME_EMAIL` and your DNS-provider token (Cloudflare: `CLOUDFLARE_API_TOKEN`) in `.env`, `cp traefik/examples/otlp.acme.yml traefik/dynamic/otlp.yml` (edit the `Host`), then `docker compose up -d traefik`. |
 | **bring-your-own-cert** | `cp traefik/examples/otlp.byocert.yml traefik/dynamic/otlp.yml`, drop `tls.crt`/`tls.key` into `./certs/`, then `docker compose restart traefik`. |
 
 ACME uses the DNS-01 challenge (works for endpoints not reachable on :80/:443).
@@ -176,7 +176,6 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
 docker-compose.yml          stack definition (Traefik always-on -> collector -> VM/VL/VT)
 otel-collector-config.yaml  collector pipelines + bearer-token auth
 traefik/
-  traefik.yml               static config (no-TLS default)
   dynamic/otlp.yml          active router (no-TLS default)
   examples/                 ACME + bring-your-own-cert variants (copy over the defaults)
 certs/                      bring-your-own-cert files (gitignored)

@@ -1,4 +1,4 @@
-# ACME router (pairs with examples/traefik.acme.yml as traefik.yml).
+# ACME router (uses the `le` resolver defined in docker-compose.yml).
 # TLS via the `le` resolver, scoped to your public hostname.
 http:
   routers:
