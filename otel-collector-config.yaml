@@ -2,6 +2,10 @@ extensions:
   bearertokenauth/server:
     scheme: Bearer
     token: ${env:OTLP_TOKEN}
+  # Probed by Traefik's load-balancer health check (traefik/dynamic/otlp.yml);
+  # the image is FROM scratch, so Docker itself can't probe it.
+  health_check:
+    endpoint: 0.0.0.0:13133
 
 receivers:
   otlp:
@@ -16,6 +20,12 @@ receivers:
           authenticator: bearertokenauth/server
 
 processors:
+  # First in every pipeline: refuses data (clients get 429/503 and retry)
+  # before the container hits its mem_limit (docker-compose.yml).
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
   batch:
     timeout: 5s
     send_batch_size: 1024
@@ -29,17 +39,17 @@ exporters:
     endpoint: http://victoriatraces:10428/insert/opentelemetry
 
 service:
-  extensions: [bearertokenauth/server]
+  extensions: [health_check, bearertokenauth/server]
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, batch]
       exporters: [otlp_http/vm]
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, batch]
       exporters: [otlp_http/vl]
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, batch]
       exporters: [otlp_http/vt]

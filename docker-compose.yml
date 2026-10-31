@@ -174,10 +174,11 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION:-0.151.0}
     restart: unless-stopped
-    # No healthcheck: the otel-collector-contrib image is FROM scratch, so there
-    # is no shell, wget, curl, or nc available to probe the health_check
-    # extension's HTTP endpoint from inside the container. Liveness is observed
-    # externally via Traefik's logs and the collector's self-reported metrics.
+    # No Docker healthcheck: the image is FROM scratch (no shell, wget or curl).
+    # Instead Traefik probes the health_check extension on :13133 from outside
+    # (traefik/dynamic/otlp.yml) and stops routing to an unhealthy collector.
+    # The memory_limiter processor sizes itself from this limit.
+    mem_limit: ${OTELCOL_MEM_LIMIT:-512m}
     environment:
       OTLP_TOKEN: ${OTLP_TOKEN}
     volumes:

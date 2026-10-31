@@ -36,6 +36,13 @@ http:
       loadBalancer:
         servers:
           - url: "http://otel-collector:4318"
+        # The collector's health_check extension; while it fails, Traefik
+        # answers 503 instead of forwarding.
+        healthCheck:
+          port: 13133
+          path: /
+          interval: 10s
+          timeout: 3s
 {{- if eq $mode "byocert" }}
 tls:
   stores:
