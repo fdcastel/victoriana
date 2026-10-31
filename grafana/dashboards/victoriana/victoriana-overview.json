@@ -303,7 +303,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum(rate(otelcol_receiver_accepted_metric_points_total[$__rate_interval]))",
+          "expr": "sum(rate(otelcol_receiver_accepted_metric_points[$__rate_interval]))",
           "legendFormat": "metric points"
         },
         {
@@ -312,7 +312,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum(rate(otelcol_receiver_accepted_log_records_total[$__rate_interval]))",
+          "expr": "sum(rate(otelcol_receiver_accepted_log_records[$__rate_interval]))",
           "legendFormat": "log records"
         },
         {
@@ -321,7 +321,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval]))",
+          "expr": "sum(rate(otelcol_receiver_accepted_spans[$__rate_interval]))",
           "legendFormat": "spans"
         }
       ],
@@ -377,7 +377,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum by (__name__) (rate({__name__=~\"otelcol_receiver_refused_.+_total\"}[$__rate_interval]) keep_metric_names)",
+          "expr": "sum by (__name__) (rate({__name__=~\"otelcol_receiver_refused_.+\"}[$__rate_interval]) keep_metric_names)",
           "legendFormat": "refused: {{__name__}}"
         },
         {
@@ -386,7 +386,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum by (__name__) (rate({__name__=~\"otelcol_receiver_failed_.+_total\"}[$__rate_interval]) keep_metric_names)",
+          "expr": "sum by (__name__) (rate({__name__=~\"otelcol_receiver_failed_.+\"}[$__rate_interval]) keep_metric_names)",
           "legendFormat": "failed: {{__name__}}"
         },
         {
@@ -395,7 +395,7 @@
             "type": "prometheus",
             "uid": "victoriametrics"
           },
-          "expr": "sum by (exporter) (rate({__name__=~\"otelcol_exporter_send_failed_.+_total\"}[$__rate_interval]))",
+          "expr": "sum by (exporter) (rate({__name__=~\"otelcol_exporter_send_failed_.+\"}[$__rate_interval]))",
           "legendFormat": "export failed: {{exporter}}"
         }
       ],

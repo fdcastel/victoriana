@@ -35,7 +35,7 @@ groups:
           description: "The collector's health_check (:13133) has failed for 2m, so producers' data is not being accepted."
 
       - alert: CollectorExportFailing
-        expr: sum by (exporter) (rate({__name__=~"otelcol_exporter_send_failed_.+_total"}[5m])) > 0
+        expr: sum by (exporter) (rate({__name__=~"otelcol_exporter_send_failed_.+"}[5m])) > 0
         for: 5m
         labels:
           severity: critical
@@ -53,7 +53,7 @@ groups:
           description: "Its store is down or slow; accepted data waits in the on-disk queue and is retried until delivered. At 100% the collector refuses new data (CollectorRefusingData)."
 
       - alert: CollectorRefusingData
-        expr: sum(rate({__name__=~"otelcol_receiver_refused_.+_total"}[5m])) > 0
+        expr: sum(rate({__name__=~"otelcol_receiver_refused_.+"}[5m])) > 0
         for: 5m
         labels:
           severity: warning
