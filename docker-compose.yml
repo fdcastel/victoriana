@@ -5,10 +5,10 @@ networks:
     name: victoriana_default
 
 services:
-  # Always-on ingress. Fronts the otel-collector on :4318. TLS is NOT a stack
-  # concern: it lives entirely in ./traefik/ config (file provider). The default
-  # config is no-TLS; copy ./traefik/examples/* over the defaults for ACME or
-  # bring-your-own-cert. The single :4318 entrypoint is identical in every mode.
+  # Always-on ingress. Fronts the otel-collector on :4318. TLS is selected by
+  # OTLP_TLS_MODE in .env (none | acme | byocert), rendered by the
+  # ./traefik/dynamic/otlp.yml template. The :4318 entrypoint is identical in
+  # every mode.
   traefik:
     image: traefik:${TRAEFIK_VERSION:-v3.6.17}
     container_name: victoriana-traefik
@@ -42,6 +42,9 @@ services:
       - "--certificatesResolvers.le.acme.dnsChallenge.provider=cloudflare"
       - "--certificatesResolvers.le.acme.dnsChallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
     environment:
+      # Read by the dynamic/otlp.yml template: none | acme | byocert.
+      OTLP_TLS_MODE: ${OTLP_TLS_MODE:-none}
+      OTLP_HOSTNAME: ${OTLP_HOSTNAME:-}
       # Read by the Cloudflare DNS provider; empty unless you use ACME.
       CF_DNS_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
     volumes:

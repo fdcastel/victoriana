@@ -1,16 +1,47 @@
-# No-TLS default router: forward everything on the :4318 entrypoint to the
-# otel-collector over plain HTTP. The collector enforces the bearer token, so
-# this is safe on a trusted LAN. For TLS, replace this file with one of the
-# ../examples/ variants.
+# OTLP router: the :4318 entrypoint -> otel-collector over plain HTTP (the
+# collector enforces the bearer token). TLS is selected by OTLP_TLS_MODE in
+# .env (passed to Traefik in docker-compose.yml); this file is a Go template.
+#   none     plain HTTP, any Host (default)
+#   acme     Let's Encrypt via the `le` resolver, only for Host(OTLP_HOSTNAME)
+#   byocert  your cert from ./certs/tls.crt + ./certs/tls.key, any Host
+# Changing the mode or hostname in .env: `docker compose up -d traefik`.
+# An unknown mode, or acme without a hostname, drops this router (Traefik logs
+# why) rather than falling back to plain HTTP.
+{{- $mode := env "OTLP_TLS_MODE" | default "none" }}
+{{- $host := env "OTLP_HOSTNAME" }}
+{{- if not (has $mode (list "none" "acme" "byocert")) }}
+{{- fail (printf "OTLP_TLS_MODE=%q: expected none, acme or byocert" $mode) }}
+{{- end }}
+{{- if and (eq $mode "acme") (not $host) }}
+{{- fail "OTLP_TLS_MODE=acme requires OTLP_HOSTNAME" }}
+{{- end }}
 http:
   routers:
     otlp:
       entryPoints:
         - otlp
+{{- if eq $mode "acme" }}
+      rule: "Host(`{{ $host }}`)"
+      tls:
+        certResolver: le
+{{- else if eq $mode "byocert" }}
       rule: "PathPrefix(`/`)"
+      tls: {}
+{{- else }}
+      rule: "PathPrefix(`/`)"
+{{- end }}
       service: otlp
   services:
     otlp:
       loadBalancer:
         servers:
           - url: "http://otel-collector:4318"
+{{- if eq $mode "byocert" }}
+tls:
+  stores:
+    default:
+      # Default cert, so it is served for any SNI (or none, e.g. by IP).
+      defaultCertificate:
+        certFile: /certs/tls.crt
+        keyFile: /certs/tls.key
+{{- end }}
