@@ -127,8 +127,17 @@ ssh -L 8080:localhost:80 \
 
 To expose Grafana on a network instead of tunnelling, set `TRAEFIK_WEB_BIND` in
 `.env` (e.g. `0.0.0.0:80`, or `<lan-ip>:80` for one interface) - this binds
-Traefik's `web` entrypoint, not Grafana itself. Only do this on a trusted
-network: Grafana ships anonymous-Admin (see [Security model](#security-model)).
+Traefik's `web` entrypoint, not Grafana itself. Grafana ships anonymous-Admin
+(see [Security model](#security-model)), so before exposing it set either or
+both of:
+
+- `GRAFANA_BASIC_AUTH_USERS` - htpasswd lines (comma-separated, single-quoted
+  in `.env`); Traefik then requires a login before anything reaches Grafana.
+- `GRAFANA_HOSTNAME` - serve Grafana only for that Host, over HTTPS with a
+  Let's Encrypt cert (same `ACME_EMAIL`/`CLOUDFLARE_API_TOKEN` as the OTLP
+  endpoint). Plain HTTP then gets 404; e.g. `TRAEFIK_WEB_BIND=0.0.0.0:443`.
+
+Apply with `docker compose up -d traefik`.
 
 ## Configuration
 
@@ -168,8 +177,10 @@ metrics are stored under standard Prometheus names (`foo.bar` -> `foo_bar`,
   network or behind another TLS proxy; otherwise enable a TLS mode above.
 - **Grafana ships with anonymous Admin and no login** (`GF_AUTH_ANONYMOUS_*`),
   convenient behind the loopback/SSH-tunnel boundary. Before exposing it
-  (`TRAEFIK_WEB_BIND`), consider removing those env vars and provisioning real
-  users - otherwise anyone who reaches the port is Admin.
+  (`TRAEFIK_WEB_BIND`), set `GRAFANA_BASIC_AUTH_USERS` (and ideally
+  `GRAFANA_HOSTNAME` for TLS) - otherwise anyone who reaches the port is Admin.
+  Everyone who passes the basicAuth login is still Grafana Admin; for per-user
+  roles, remove the anonymous env vars and provision real Grafana users.
 
 ## Operations
 
