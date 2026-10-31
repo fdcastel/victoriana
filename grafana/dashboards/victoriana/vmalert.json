@@ -2947,7 +2947,7 @@
           ],
           "title": "Group Iteration Reset ($instance)",
           "type": "timeseries"
-        }        
+        }
       ],
       "title": "Troubleshooting",
       "type": "row"
@@ -4458,8 +4458,8 @@
     "list": [
       {
         "current": {
-          "text": "VictoriaMetrics - cluster",
-          "value": "PAF93674D0B4E9963"
+          "text": "VictoriaMetrics",
+          "value": "victoriametrics"
         },
         "includeAll": false,
         "name": "ds",

@@ -8802,7 +8802,10 @@
   "templating": {
     "list": [
       {
-        "current": {},
+        "current": {
+          "text": "VictoriaMetrics",
+          "value": "victoriametrics"
+        },
         "includeAll": false,
         "name": "ds",
         "options": [],

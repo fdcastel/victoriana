@@ -38,6 +38,10 @@ jobs:
       - name: Validate compose
         run: docker compose config -q
 
+      - name: Vendored upstream dashboards/rules match the pinned versions
+        if: matrix.tls == 'none'
+        run: scripts/vendor-upstream.sh && git diff --exit-code
+
       - name: Validate collector config (pinned image)
         run: |
           img=$(docker compose config --format json | jq -r '.services["otel-collector"].image')

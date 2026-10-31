@@ -231,7 +231,10 @@ How each kind of change takes effect:
   accepted. Move every producer to the new token, then set `OTLP_TOKEN` to it,
   remove `OTLP_TOKEN_NEXT`, and `docker compose up -d otel-collector` again.
 - **Bump an image:** edit the `*_VERSION` in `.env`, then
-  `docker compose up -d <service>`.
+  `docker compose up -d <service>`. To change a Victoria default in
+  `docker-compose.yml` instead, also run `scripts/vendor-upstream.sh` so the
+  self-monitoring dashboards and rules match the new version (CI fails until
+  they do).
 - **Reset stored data:** `docker compose down && rm -rf data/vm data/vl data/vt && docker compose up -d`
   (keep `data/traefik/` to preserve any ACME cert). Grafana's state lives in the
   `grafana-data` named volume and holds nothing that isn't re-provisioned;
@@ -263,6 +266,7 @@ docker-compose.yml          stack definition (Traefik always-on -> collector -> 
 otel-collector-config.yaml  collector pipelines + bearer-token auth
 victoriametrics/scrape.yml  self-monitoring scrape targets
 scripts/smoke.sh            end-to-end test (README + CI)
+scripts/vendor-upstream.sh  refresh the upstream dashboards/rules from the pinned tags
 traefik/
   dynamic/otlp.yml          OTLP router; a template rendered from OTLP_TLS_MODE
   dynamic/grafana.yml       Grafana router (web entrypoint)

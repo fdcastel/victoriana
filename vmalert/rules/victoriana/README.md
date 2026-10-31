@@ -23,4 +23,7 @@
   VL/VT counterpart) and `RequestErrorsToAPI` in `upstream-vmsingle.yml` get the
   file's own `job=~".*(victoriametrics|...).*"` filter, so each product's
   alerts come from its own file only.
-  To refresh, re-download from the matching tags when bumping an image.
+  Don't edit these by hand: [../../../scripts/vendor-upstream.sh](../../../scripts/vendor-upstream.sh)
+  re-downloads them from the tags pinned in `docker-compose.yml` and reapplies
+  the job filters (and fails if upstream changed shape). Run it after bumping
+  `VM_VERSION`, `VL_VERSION` or `VT_VERSION` there, and commit the result.
