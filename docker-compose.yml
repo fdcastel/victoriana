@@ -190,7 +190,8 @@ services:
     # The memory_limiter processor sizes itself from this limit.
     mem_limit: ${OTELCOL_MEM_LIMIT:-512m}
     environment:
-      OTLP_TOKEN: ${OTLP_TOKEN}
+      OTLP_TOKEN: ${OTLP_TOKEN:?set OTLP_TOKEN in .env}
+      OTLP_TOKEN_NEXT: ${OTLP_TOKEN_NEXT:-${OTLP_TOKEN}}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     depends_on:
