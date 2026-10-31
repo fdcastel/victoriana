@@ -12,6 +12,9 @@
 # Consumer drop-ins: each consumer owns its own subdirectory, out-of-band
 /grafana/dashboards/*/
 /vmalert/rules/*/
+# ...except victoriana's own self-monitoring
+!/grafana/dashboards/victoriana/
+!/vmalert/rules/victoriana/
 
 # Scratch / working notes
 /tmp/

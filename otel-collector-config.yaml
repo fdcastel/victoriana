@@ -41,6 +41,15 @@ exporters:
     endpoint: http://victoriatraces:10428/insert/opentelemetry
 
 service:
+  # Internal metrics on :8888, scraped by victoriametrics (not published).
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
   extensions: [health_check, bearertokenauth/server]
   pipelines:
     metrics:

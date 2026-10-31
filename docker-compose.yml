@@ -32,6 +32,9 @@ services:
       # Skip 404s: internet scanners probing :4318 would otherwise be most of
       # the log. 401s (bad/missing token) are kept.
       - "--accessLog.filters.statusCodes=100-403,405-599"
+      # Prometheus metrics on the internal `traefik` entrypoint (:8080/metrics),
+      # scraped by victoriametrics; not published.
+      - "--metrics.prometheus=true"
       # Let's Encrypt resolver `le`, DNS-01 via Cloudflare. Always defined;
       # harmless until a router references it (no account, no LE traffic).
       # Cert + account persist in ./data/traefik/acme.json.
@@ -66,6 +69,7 @@ services:
       - "127.0.0.1:8428:8428"
     volumes:
       - ./data/vm:/storage
+      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     command:
       - "-storageDataPath=/storage"
       - "-httpListenAddr=:8428"
@@ -73,6 +77,9 @@ services:
       # Stop accepting writes (rather than corrupting/crashing) when the disk
       # is nearly full. Metrics are never deleted early.
       - "-storage.minFreeDiskSpaceBytes=${VM_MIN_FREE_DISK:-1GiB}"
+      # Self-monitoring: scrape every component (victoriametrics/scrape.yml).
+      - "-promscrape.config=/etc/victoriametrics/scrape.yml"
+      - "-promscrape.configCheckInterval=60s"
       # Store OTLP metrics under standard Prometheus names (dots->underscores,
       # _total for counters, unit suffixes) instead of the dotted OTel names.
       - "-opentelemetry.usePrometheusNaming=true"
@@ -139,6 +146,9 @@ services:
       - "-datasource.url=http://victoriametrics:8428"
       - "-remoteWrite.url=http://victoriametrics:8428"
       - "-evaluationInterval=30s"
+      # vmalert refuses to start with alerting rules and no notifier; discard
+      # notifications (alerts still show in the vmalert UI and Grafana).
+      - "-notifier.blackhole"
       - "-httpListenAddr=:8880"
     depends_on:
       victoriametrics:

@@ -1,0 +1,31 @@
+# Self-monitoring: VictoriaMetrics scrapes every victoriana component.
+# Job names match what the upstream dashboards (grafana/dashboards/victoriana/)
+# and alert rules (vmalert/rules/victoriana/) select on. Re-read every 60s
+# (-promscrape.configCheckInterval), so edits need no restart.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: victoriametrics
+    static_configs:
+      - targets: [localhost:8428]
+  - job_name: victorialogs
+    static_configs:
+      - targets: [victorialogs:9428]
+  - job_name: victoriatraces
+    static_configs:
+      - targets: [victoriatraces:10428]
+  - job_name: vmalert
+    static_configs:
+      - targets: [vmalert:8880]
+  # Traefik's internal `traefik` entrypoint (--metrics.prometheus).
+  - job_name: traefik
+    static_configs:
+      - targets: [traefik:8080]
+  # Collector internal telemetry (service.telemetry in otel-collector-config.yaml).
+  - job_name: otel-collector
+    static_configs:
+      - targets: [otel-collector:8888]
+  - job_name: grafana
+    static_configs:
+      - targets: [grafana:3000]
